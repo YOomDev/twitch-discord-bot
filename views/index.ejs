@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Streamer companion</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="header"></div>
+        <div id="container">
+            <h1>Console</h1>
+            <p>Test 123</p>
+            <div class="text-input" id="say-input" role="textbox" contenteditable="true" aria-multiline="true" aria-placeholder="Test"></div>
+            <button onclick="command('say', 'say-input')" type="button">Say</button><br/>
+            <div class="text-input" id="prompt-input" role="textbox" contenteditable="true" aria-multiline="true"></div>
+            <button onclick="command('ask', 'prompt-input')" type="button">Ask</button><br/>
+            <form>
+                <%-modules%>
+                <button onclick="prepareModules(); command('modules', 'modules')" type="button">Load modules</button>
+            </form>
+            <p id="modules" hidden></p>
+            <%-status%>
+            <button onclick="command('stop')" type="button">Stop</button>
+        </div>
+
+        <div id="footer"></div>
+        <script>
+            function command(cmd, source = "", separator = "\/") {
+                let result = "cmd/" + cmd + "/";
+                if (source.length) { // Branch off if a data input has been added
+                    let text = document.getElementById(source).innerHTML.replaceAll("<div>", " ").replaceAll("<br>", "").replaceAll("</div>", ""); // Make sure line breaks don't get sent to command buffer
+                    while(text.indexOf("  ") > -1) { text = text.replaceAll("  ", " "); }
+                    for (let i = 0; i < text.length; i++) {
+                        if (result.length) { result += text[i] === " " ? separator : text[i]; }
+                        else if (text[i] !== " ") { result += text[i]; }
+                    }
+                }
+                location.href = location.href + result;
+            }
+
+            function concat(list) {
+                let result = "";
+                for (let i = 0; i < list.length; i ++) { result += ((!result.length || !(list[i].length)) ? "" : " ") + list[i]; }
+                return result;
+            }
+        </script>
+    </body>
+</html>
