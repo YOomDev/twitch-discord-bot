@@ -28,13 +28,13 @@ const adminLevels = [
 const TWITCH = "Twitch";
 const DISCORD = "Discord"
 
-const TWITCH_ID = getInterfaceID(TWITCH);
-const DISCORD_ID = getInterfaceID(DISCORD);
-
-const IDs = [
+const IDs = {
     TWITCH,
     DISCORD,
-];
+};
+
+const TWITCH_ID = getInterfaceID(TWITCH);
+const DISCORD_ID = getInterfaceID(DISCORD);
 
 ////////////
 // Memory //
@@ -52,15 +52,12 @@ let closing = false;
 function isBusy() { return tasksBusy.discord || tasksBusy.twitch || tasksBusy.console; }
 
 async function start() {
-    logInfo("Initializing...")
-    await startTwitch();
-    await startDiscord();
-    await sleep(1); // Make sure console can be loaded before continuing
-    logInfo("Initialized successfully!")
-
-    while (isBusy()) { await sleep(1); }
-
-    logInfo("Program stopped!")
+    logInfo("Console started, initializing bots...");
+    //await startTwitch();
+    //await startDiscord();
+    logInfo("Bots initialized successfully!");
+    while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
+    logInfo("Program stopped!");
 }
 
 async function stop() {
@@ -68,7 +65,6 @@ async function stop() {
         closing = true;
         if (tasksBusy.discord) { await stopDiscord(); }
         if (tasksBusy.twitch) { await stopTwitch(); }
-        if (tasksBusy.console) { await stopServer(); }
     }
 }
 
@@ -80,8 +76,19 @@ function parseTwitch(channel, userState, message) {
 
 }
 
-function parseConsole() {
-
+async function parseConsole(url) {
+    const params = url.split("/");
+    const command = params[2].toLowerCase();
+    params.splice(0, 3);
+    switch (command) {
+        // TODO
+        case "stop":
+            await stopServer();
+            break;
+        default:
+            logWarning(`Unknown command: ${command}`);
+            break;
+    }
 }
 
 ////////////////////
@@ -107,8 +114,10 @@ clientTwitch.on('message', (channel, userState, message, self) => { if (!self) {
 let twitch = 0;
 
 async function startTwitch() {
-
+    // TODO
 }
+
+async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
 // TODO: add backend to send message back
 
@@ -125,34 +134,31 @@ let discord = 0;
 
 async function startDiscord() {
     discord = clientDiscord.login();
-
+    // TODO: finish
 }
 
 function sendReplyDiscord() {
-
+    // TODO
 }
 
 function sendChannelMessageDiscord() {
-
+    // TODO
 }
 
 function sendDMDiscord() {
-
+    // TODO
 }
 
-async function stopDiscord() {
-    await clientDiscord.close();
-    tasksBusy.discord = false;
-}
+async function stopDiscord() { await clientDiscord.close(); tasksBusy.discord = false; }
 
 ///////////////////
 // Control panel //
 ///////////////////
 
 // Console
-const http = require('http');
+const http    = require('http');
 const express = require('express');
-const app = express();
+const app     = express();
 
 // Setup express for usage
 app.set('view engine', 'ejs');
@@ -165,11 +171,11 @@ app.get("/cmd/*", (req, res) => {
 });
 
 // Set main page get implementation
-app.get("/", (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); }); // TODO change program to actual used thing
+app.get("/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); }); // TODO change program to actual used thing
 
 // Start the server
 const server = http.createServer(app);
-server.listen(3000, () => { tasksBusy.console = true; });
+server.listen(3000, () => { tasksBusy.console = true; program = start(); });
 
 // Used to kill the server
 async function stopServer() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); }
@@ -187,15 +193,9 @@ function equalsIgnoreCase(first, second) {
 
 function getInterfaceID(interfaceName) { for (let i = 0; i < IDs.length; i++) { if (equalsIgnoreCase(IDs[i], interfaceName)) { return i; } } return -1; }
 
-function logError(err)   { console.error("ERROR:\t"  , err ); }
-function logWarning(err) { console.error("Warning:\t", err ); }
-function logInfo(info)   { console.log("Info:\t"     , info); }
-function logData(data)   { console.log(                data); }
+function logError(err)   { console.error("ERROR:\t", err ); }
+function logWarning(err) { console.error("Warning:", err ); }
+function logInfo(info)   { console.log("Info:\t"   , info); }
+function logData(data)   { console.log(              data); }
 
 async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
-
-///////////////////////
-// Start the program //
-///////////////////////
-
-start().catch(err => { logError(err); });

@@ -14,11 +14,6 @@
             <button onclick="command('say', 'say-input')" type="button">Say</button><br/>
             <div class="text-input" id="prompt-input" role="textbox" contenteditable="true" aria-multiline="true"></div>
             <button onclick="command('ask', 'prompt-input')" type="button">Ask</button><br/>
-            <form>
-                <%-modules%>
-                <button onclick="prepareModules(); command('modules', 'modules')" type="button">Load modules</button>
-            </form>
-            <p id="modules" hidden></p>
             <%-status%>
             <button onclick="command('stop')" type="button">Stop</button>
         </div>
