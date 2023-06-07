@@ -1,7 +1,5 @@
 const TESTING = true
 
-start().catch(err => { console.error(err); });
-
 //////////////
 // Settings //
 //////////////
@@ -45,21 +43,33 @@ const IDs = [
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false, console: false };
 let program = null;
+let closing = false;
 
 /////////
 // BOT //
 /////////
 
-function isBusy() {
-    return tasksBusy.discord || tasksBusy.twitch || tasksBusy.console;
-}
+function isBusy() { return tasksBusy.discord || tasksBusy.twitch || tasksBusy.console; }
 
 async function start() {
     logInfo("Initializing...")
     await startTwitch();
-    await startConsole();
     await startDiscord();
+    await sleep(1); // Make sure console can be loaded before continuing
     logInfo("Initialized successfully!")
+
+    while (isBusy()) { await sleep(1); }
+
+    logInfo("Program stopped!")
+}
+
+async function stop() {
+    if (!closing) {
+        closing = true;
+        if (tasksBusy.discord) { await stopDiscord(); }
+        if (tasksBusy.twitch) { await stopTwitch(); }
+        if (tasksBusy.console) { await stopServer(); }
+    }
 }
 
 function parseDiscord(message) {
@@ -70,7 +80,7 @@ function parseTwitch(channel, userState, message) {
 
 }
 
-function parseCommand() {
+function parseConsole() {
 
 }
 
@@ -78,7 +88,7 @@ function parseCommand() {
 // Twitch backend //
 ////////////////////
 
-const channel = "#" + (testing ? "thattouch" : "missdokidoki");
+const channel = "#" + (TESTING ? "thattouch" : "missdokidoki");
 
 // Twitch
 const tmi = require("tmi.js");
@@ -114,6 +124,7 @@ clientDiscord.on('messageCreate', message => { parseDiscord(message); });
 let discord = 0;
 
 async function startDiscord() {
+    discord = clientDiscord.login();
 
 }
 
@@ -129,77 +140,9 @@ function sendDMDiscord() {
 
 }
 
-//////////////
-// DATABASE //
-//////////////
-
-function NO_CALLBACK() {}
-
-// FIle name
-const dbName = TESTING ? "./testing.db" : "./twitch.db";
-console.log(dbName);
-
-// Tables
-const QUOTE = "quote"
-const AUTOMSG = "automsg";
-const SOUND = "sound";
-const tables = [QUOTE, AUTOMSG, SOUND];
-
-// tableID's
-const AUTOMATED_MESSAGES = tables.indexOf(AUTOMSG);
-const QUOTES = tables.indexOf(QUOTE);
-const SOUNDS = tables.indexOf(SOUND);
-
-// Database backend
-const sqlite = require('sqlite3').verbose();
-
-function connect() { return new sqlite.Database(dbName, sqlite.OPEN_READWRITE, (err) => { if (err) { console.error(err); } }); }
-
-// make sure an error gets logged on startup if file doesn't exist
-let db = connect();
-db.close();
-db.serialize(() => {
-    createTables();
-    // TODO start();
-});
-
-function createTables() {
-    // console.log("Creating tables");
-    db = connect();
-    db.run("CREATE TABLE tmp(NAME TEXT PRIMARY KEY, TIMER INTEGER, MESSAGE TEXT, ENABLED INTEGER, CHANNEL TEXT)", (err) => { if (err) { if (err.errno != 1) { console.error(err); } } } );
-    for (let i = 0; i < tables.length; i++) {
-        const create = "CREATE TABLE tmp(NAME TEXT PRIMARY KEY, TIMER INTEGER, MESSAGE TEXT, ENABLED INTEGER, CHANNEL TEXT)";
-        const sql = create.replace("tmp", tables[i]);
-        db.run(sql, (err) => { if (err) { if (err.errno != 1) { console.error(err); } } } );
-    }
-    db.close();
-}
-
-function insertInTable(tableID, NAME, TIMER, MESSAGE, ENABLED, CHANNEL) {
-    const insert = "INSERT INTO tmp(NAME, TIMER, MESSAGE, ENABLED, CHANNEL) VALUES (?,?,?,?,?)";
-    const sql = insert.replace("tmp", tables[tableID]);
-
-    console.log(sql)
-
-    db = connect();
-    db.run(sql, [NAME, TIMER, MESSAGE, ENABLED, CHANNEL], (err) => { if (err) { console.error(err); } });
-    db.close();
-}
-
-function getTableContents(tableID, callback) {
-    const select = "SELECT * FROM tmp";
-    const sql = select.replace("tmp", tables[tableID]);
-    db = connect();
-    db.all(sql, [], (err, rows) => {
-        if (err) { console.error(err); }
-        else { if (rows.length > 0) {
-            console.log("Reading table");
-            console.log(tables[tableID]);
-            console.log(rows);
-            callback(rows);
-        } }
-    });
-    db.close();
+async function stopDiscord() {
+    await clientDiscord.close();
+    tasksBusy.discord = false;
 }
 
 ///////////////////
@@ -217,16 +160,12 @@ app.use(express.static(__dirname + '/public'));
 
 // Set command interface through page get
 app.get("/cmd/*", (req, res) => {
-    if (tasksBusy.console) { parseCommand(req.url).catch((err) => { console.error(err); }); }
+    if (tasksBusy.console) { parseConsole(req.url).catch((err) => { logError(err); }); }
     sleep(0.05).then(() => { res.redirect("/"); }); // redirects back to the home page
 });
 
 // Set main page get implementation
 app.get("/", (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); }); // TODO change program to actual used thing
-
-async function startConsole() {
-
-}
 
 // Start the server
 const server = http.createServer(app);
@@ -246,9 +185,17 @@ function equalsIgnoreCase(first, second) {
     }
 }
 
-function getInterfaceID(interface) { for (let i = 0; i < IDs.length; i++) { if (equalsIgnoreCase(IDs[i], interface)) { return i; } } return -1; }
+function getInterfaceID(interfaceName) { for (let i = 0; i < IDs.length; i++) { if (equalsIgnoreCase(IDs[i], interfaceName)) { return i; } } return -1; }
 
-function logError(err) { console.error("ERROR:\t", err); }
-function logWarning(err) { console.error("Warning:\t", err); }
-function logInfo(info) { console.log("Info:\t", info); }
+function logError(err)   { console.error("ERROR:\t"  , err ); }
+function logWarning(err) { console.error("Warning:\t", err ); }
+function logInfo(info)   { console.log("Info:\t"     , info); }
+function logData(data)   { console.log(                data); }
+
 async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
+
+///////////////////////
+// Start the program //
+///////////////////////
+
+start().catch(err => { logError(err); });
