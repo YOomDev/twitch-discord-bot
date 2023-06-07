@@ -4,6 +4,8 @@ const TESTING = true
 // Settings //
 //////////////
 
+require('dotenv').config()
+
 // Commands
 const prefix = "!";
 
@@ -53,8 +55,8 @@ function isBusy() { return tasksBusy.discord || tasksBusy.twitch || tasksBusy.co
 
 async function start() {
     logInfo("Console started, initializing bots...");
-    //await startTwitch();
-    //await startDiscord();
+    // await startTwitch();
+    await startDiscord();
     logInfo("Bots initialized successfully!");
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
     logInfo("Program stopped!");
@@ -125,16 +127,18 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 // Discord backend //
 /////////////////////
 
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+
+clientDiscord.once(Events.ClientReady, () => { console.log("Phasmo randomizer bot is online!"); console.log(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
 clientDiscord.on('messageCreate', message => { parseDiscord(message); });
 
 let discord = 0;
 
 async function startDiscord() {
-    discord = clientDiscord.login();
-    // TODO: finish
+    discord = clientDiscord.login(process.env.DISCORD).catch(err => { console.log(err); });
+    // TODO
 }
 
 function sendReplyDiscord() {
