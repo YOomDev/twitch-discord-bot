@@ -4,39 +4,11 @@ const TESTING = true
 // Settings //
 //////////////
 
-require('dotenv').config()
+const color = "#ff8888"
 
 // Commands
 const prefix = "!";
-
-// Roles
-const BROADCASTER = "Broadcaster";
-const ADMIN       = "Admin";
-const MODERATOR   = "Moderator";
-const VIP         = "VIP";
-const SUBSCRIBER  = "Subscriber";
-const VIEWER      = "Viewer";
-
-const adminLevels = [
-    VIEWER,
-    SUBSCRIBER,
-    VIP,
-    MODERATOR,
-    ADMIN,
-    BROADCASTER,
-];
-
-// Interfaces
-const TWITCH = "Twitch";
-const DISCORD = "Discord"
-
-const IDs = {
-    TWITCH,
-    DISCORD,
-};
-
-const TWITCH_ID = getInterfaceID(TWITCH);
-const DISCORD_ID = getInterfaceID(DISCORD);
+let adminRoles = ["Admin", "Dev"];
 
 ////////////
 // Memory //
@@ -46,6 +18,10 @@ const DISCORD_ID = getInterfaceID(DISCORD);
 let tasksBusy  = { discord: false, twitch: false, console: false };
 let program = null;
 let closing = false;
+let ready = false; // Used by bots during its start to wait till its ready
+
+// settings file
+require('dotenv').config();
 
 /////////
 // BOT //
@@ -71,11 +47,67 @@ async function stop() {
 }
 
 function parseDiscord(message) {
+    if (message.author.id === clientDiscord.user.id) { return; }
+    const msg = "" + message.content;
 
+    // check if user has the right permissions
+    const member = message.guild.members.cache.get(message.author.id);
+
+    if (msg.startsWith(prefix)) {
+        const params = msg.substring(prefix.length, msg.length).split("/");
+        const command = params[0].toLowerCase();
+        params.splice(0, 3);
+        switch (command) {
+            case "stop":
+                if (isAdminDiscord(member)) { sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
+                else { sendChannelMessageDiscord(message.channel, "No permission", "You do not have the required role to use this command!"); }
+                break;
+            case "verify":
+                if (!isVerifiedDiscord(message.author.id)) {
+                    const code = createVerify(message.author.id);
+                    if (code.length) {
+                        sendDMDiscord(message.author, "Verification-code", `Code: ${code}`);
+                    } else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
+                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verified!"); }
+                break;
+            default:
+                sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
+                logWarning("Discord command not found! (" + command + ")");
+                break;
+        }
+        return;
+    }
+
+    logWarning("unused discord event");
+    logData(message);
 }
 
 function parseTwitch(channel, userState, message) {
+    const params = message.split("/");
+    const command = params[2].toLowerCase();
+    const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
+    params.splice(0, 3);
 
+    switch (command) {
+        case "verify":
+            if (params.length > 0) {
+                if (!isVerifiedTwitch(userState)) {
+                    if (verify(userState, params[0])) {
+                        sendMessageTwitch(channel, `Successfully verified you, ${userState.name}!`); // TODO: check if works!
+                    } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
+                } else { sendMessageTwitch(channel, "You have already been verified!"); }
+            } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
+            break;
+        default:
+            sendMessageTwitch(channel, `Command \'${command}\' not found!`);
+            logData(params);
+            break;
+    }
+
+    logWarning("unused twitch event");
+    logData(userState);
+    logData(message);
+    logData(channel);
 }
 
 async function parseConsole(url) {
@@ -83,21 +115,70 @@ async function parseConsole(url) {
     const command = params[2].toLowerCase();
     params.splice(0, 3);
     switch (command) {
-        // TODO
         case "stop":
-            await stopServer();
+            await stopConsole();
             break;
         default:
-            logWarning(`Unknown command: ${command}`);
+            logWarning(`Unknown console command: ${command}`);
             break;
     }
 }
+
+function createVerify(discordId) {
+    const code = "" + discordId + "-" + Date.now();
+    const path = "./verify/discord/" + discordId;
+    if (!sumLength(readFile(path))) { return ""; } // return empty if verify-code has already been requested
+    writeLineToFile(path, code);
+    return code;
+}
+
+function verify(userState, code) {
+    if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual code
+
+    const discordId   = code.split("-")[0];
+    const verifyCode  = code.split("-")[1];
+    const pathDiscord = "./verify/discord/" + discordId;
+    const pathTwitch  = "./verify/discord/" + "TWITCH-ID"; // TODO: change to twitch id
+
+    const read = readFile(pathDiscord);
+    if (read.length === 1) {
+        if (read[0] === verifyCode) {
+            writeLineToFile(pathDiscord, "TWITCH-ID"); // TODO: change to twitch id
+            writeLineToFile(pathTwitch , discordId);
+            return true;
+        }
+    }
+    return false;
+}
+
+// File structure: name: discord-id; line1: verify_code; line2: tiwthc-id (if verified)
+function isVerifiedDiscord(discordId) { return readFile("./verify/discord/" + discordId).length > 1; }
+
+// File structure: name: twitch-id line1: discord-id (if verified)
+function isVerifiedTwitch(userState) { return readFile("./verify/twitch/" + "TWITCH-ID").length > 0; } // TODO: find way to get twitch user id
 
 ////////////////////
 // Twitch backend //
 ////////////////////
 
 const channel = "#" + (TESTING ? "thattouch" : "missdokidoki");
+
+// Roles
+const BROADCASTER = "Broadcaster";
+const ADMIN       = "Admin";
+const MODERATOR   = "Moderator";
+const VIP         = "VIP";
+const SUBSCRIBER  = "Subscriber";
+const VIEWER      = "Viewer";
+
+const adminLevels = [
+    VIEWER,
+    SUBSCRIBER,
+    VIP,
+    MODERATOR,
+    ADMIN,
+    BROADCASTER,
+];
 
 // Twitch
 const tmi = require("tmi.js");
@@ -108,20 +189,34 @@ const clientTwitch = new tmi.Client({
         username: "BanananaBotto",
         password: "oauth:ybomr1iw89kxr7yyu058h9g3l9jwyz" // TODO: reset OAuth since it expired
     },
-    channels: ['#thattouch'/*, '#missdokidoki'*/]
+    channels: ["#" + channel]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
 // starting returns a promise, keep it here, so we can asynchronously use discord as well
 let twitch = 0;
 
-async function startTwitch() {
-    // TODO
-}
+async function startTwitch() { twitch = clientTwitch.connect().catch(err => { logError(err); }).then(_ => { tasksBusy.twitch = true; }); }
 
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
-// TODO: add backend to send message back
+function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
+
+function getUserTypeTwitch(userState) {
+    if (userState.badges['broadcaster']) { return BROADCASTER; }
+    if (userState.mod                  ) { return MODERATOR;   }
+    if (userState.badges['vip']        ) { return VIP;         }
+    if (userState.subscriber           ) { return SUBSCRIBER;  }
+    logWarning("No role determined from:");
+    logData(userState.badges);
+    return VIEWER;
+}
+
+function getAdminLevelTwitch(type) {
+    for (let i = 0; i < adminLevels.length; ++i) { if (type === adminLevels[i]) { return i; } }
+    logWarning("No admin level found for type: " + type);
+    return -1;
+}
 
 /////////////////////
 // Discord backend //
@@ -130,30 +225,34 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
-clientDiscord.once(Events.ClientReady, () => { console.log("Phasmo randomizer bot is online!"); console.log(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
+clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Phasmo randomizer bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
-clientDiscord.on('messageCreate', message => { parseDiscord(message); });
+clientDiscord.on(Events.MessageCreate, message => { parseDiscord(message); });
 
 let discord = 0;
 
 async function startDiscord() {
-    discord = clientDiscord.login(process.env.DISCORD).catch(err => { console.log(err); });
-    // TODO
+    ready = false;
+    tasksBusy.discord = true;
+    discord = clientDiscord.login(process.env.DISCORD).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
+    while (!ready) { await sleep(0.25); }
 }
 
-function sendReplyDiscord() {
-    // TODO
+function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbed(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
+
+function sendChannelEmbed(channel, title, description, col, fields) {
+    let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
+    for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
+    channel.send({ embeds: [embed] });
 }
 
-function sendChannelMessageDiscord() {
-    // TODO
-}
-
-function sendDMDiscord() {
-    // TODO
+function sendDMDiscord(user, title, message) {
+    user.send(message);
 }
 
 async function stopDiscord() { await clientDiscord.close(); tasksBusy.discord = false; }
+
+function isAdminDiscord(member) { return member.roles.cache.some((role) => { return contains(adminRoles, role.name); }); }
 
 ///////////////////
 // Control panel //
@@ -175,27 +274,28 @@ app.get("/cmd/*", (req, res) => {
 });
 
 // Set main page get implementation
-app.get("/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); }); // TODO change program to actual used thing
+app.get("/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); });
 
 // Start the server
 const server = http.createServer(app);
 server.listen(3000, () => { tasksBusy.console = true; program = start(); });
 
-// Used to kill the server
-async function stopServer() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); }
+async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // TODO: fix error!
 
 /////////////////
 // BOT backend //
 /////////////////
 
-function equalsIgnoreCase(first, second) {
+function equalsIgnoreCase(first, second) { return equals(first.toLowerCase(), second.toLowerCase()); }
+
+function equals(first, second) {
     switch (first) {
         case second: return true;
         default: return false;
     }
 }
 
-function getInterfaceID(interfaceName) { for (let i = 0; i < IDs.length; i++) { if (equalsIgnoreCase(IDs[i], interfaceName)) { return i; } } return -1; }
+function contains(array, value) { for (let i = 0; i < array.length; i++) { if (array[i] == value) { return true; } } return false; }
 
 function logError(err)   { console.error("ERROR:\t", err ); }
 function logWarning(err) { console.error("Warning:", err ); }
@@ -203,3 +303,40 @@ function logInfo(info)   { console.log("Info:\t"   , info); }
 function logData(data)   { console.log(              data); }
 
 async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
+
+const fs = require('fs');
+
+function readFile(path) {
+    try {
+        const data = fs.readFileSync(path, 'utf8').split("\n");
+        let lines = [];
+        for (let i = 0; i < data.length; i++) {
+            let line = data[i];
+            if (line.endsWith("\r")) { line = line.substring(0, line.length - 1); } // Make sure lines don't end with the first half of the windows end line characters
+            while (line.endsWith(" ")) { line = line.substring(0, line.length - 1); } // Make sure lines don't end with a space character
+            if (line.length) { lines.push(line); }
+        }
+        return lines;
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
+}
+
+function sumLength(array) {
+    let total = 0;
+    for (let i = 0; i < array.length; i++) { total += array[i].length; }
+    return total;
+}
+
+function writeLineToFile(path, line) {
+    let writeStream = fs.createWriteStream(path);
+    writeStream.write(line + "\n");
+    writeStream.end();
+}
+
+function writeLinesToFile(path, lines) {
+    let writeStream = fs.createWriteStream(path);
+    for (let i = 0; i < lines.length; i++) { writeStream.write(lines[i] + "\n"); }
+    writeStream.end();
+}
