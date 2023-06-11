@@ -49,16 +49,10 @@ async function stop() {
 }
 
 function parseDiscord(message) {
-    if (message.author.id === clientDiscord.user.id) { return; }
-    const msg = "" + message.content;
-
-    // check if user has the right permissions
-    const member = message.guild.members.cache.get(message.author.id);
-
-    if (msg.startsWith(prefix)) {
-        const params = msg.substring(prefix.length, msg.length).split(" ");
-        console.log(params);
+    if (message.content.startsWith(prefix)) {
+        const params = message.content.substring(prefix.length, msg.length).split(" ");
         const command = params[0].toLowerCase();
+        const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
         switch (command) {
             case "stop":
@@ -78,39 +72,37 @@ function parseDiscord(message) {
                 logWarning("Discord command not found! (" + command + ")");
                 break;
         }
-        return;
     }
-
-    logWarning("unused discord event");
-    logData(message);
 }
 
 function parseTwitch(channel, userState, message) {
-    const params = message.substring(prefix.length, message.length).split(" ");
-    const command = params[0].toLowerCase();
-    const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
-    params.splice(0, 1);
+    if (message.startsWith(prefix)) {
+        const params = message.substring(prefix.length, message.length).split(" ");
+        const command = params[0].toLowerCase();
+        const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
+        params.splice(0, 1);
 
-    switch (command) {
-        case "verify":
-            if (params.length > 0) {
-                if (!isVerifiedTwitch(userState)) {
-                    if (verify(userState, params[0])) {
-                        sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`);
-                    } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
-                } else { sendMessageTwitch(channel, "You have already been verify!"); }
-            } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
-            break;
-        default:
-            sendMessageTwitch(channel, `Command \'${command}\' not found!`);
-            logData(params);
-            break;
+        switch (command) {
+            case "verify":
+                if (params.length > 0) {
+                    if (!isVerifiedTwitch(userState)) {
+                        if (verify(userState, params[0])) {
+                            sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`);
+                        } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
+                    } else { sendMessageTwitch(channel, "You have already been verify!"); }
+                } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
+                break;
+            default:
+                sendMessageTwitch(channel, `Command \'${command}\' not found!`);
+                logData(params);
+                break;
+        }
+    } else {
+        logWarning("Unused twitch event");
+        logData(userState);
+        logData(message);
+        logData(channel);
     }
-
-    logWarning("unused twitch event");
-    logData(userState);
-    logData(message);
-    logData(channel);
 }
 
 async function parseConsole(url) {
@@ -136,15 +128,15 @@ function createVerify(discordId) {
 }
 
 function verify(userState, code) {
-    if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual code
+    if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual verification-code
 
     const discordId   = code.split("-")[0];
     const pathDiscord = __dirname + "/verify/discord/" + discordId + ".txt";
     const pathTwitch  = __dirname + "/verify/twitch/" + userState['id'] + ".txt";
 
     const read = readFile(pathDiscord);
-    if (read.length === 1) {
-        if (read[0] === code) {
+    if (read.length === 1) { // Check if there's a line used, due to how it formats, the first line is the code, and thus it can be checked to see if there was a code requested
+        if (read[0] === code) { // Verify if code is the same as noted in the file
             writeLineToFile(pathDiscord, "" + userState['id']);
             writeLineToFile(pathTwitch , discordId);
             return true;
@@ -232,7 +224,7 @@ const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIn
 
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
-clientDiscord.on(Events.MessageCreate, message => { parseDiscord(message); });
+clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
 
 let discord = 0;
 
@@ -288,22 +280,12 @@ async function stopConsole() { server.close((err) => { logError(err); }); logInf
 // BOT backend //
 /////////////////
 
-function equalsIgnoreCase(first, second) { return equals(first.toLowerCase(), second.toLowerCase()); }
-
-function equals(first, second) {
-    switch (first) {
-        case second: return true;
-        default: return false;
-    }
-}
-
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (array[i] == value) { return true; } } return false; }
 
 function logError(err)   { console.error("ERROR:\t", err ); }
 function logWarning(err) { console.error("Warning:", err ); }
 function logInfo(info)   { console.log("Info:\t"   , info); }
 function logData(data)   { console.log(              data); }
-
 async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
 
 const fs = require('fs');
