@@ -1,5 +1,7 @@
 const TESTING = true
 
+let tmp = 0;
+
 //////////////
 // Settings //
 //////////////
@@ -31,7 +33,7 @@ function isBusy() { return tasksBusy.discord || tasksBusy.twitch || tasksBusy.co
 
 async function start() {
     logInfo("Console started, initializing bots...");
-    // await startTwitch();
+    await startTwitch();
     await startDiscord();
     logInfo("Bots initialized successfully!");
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
@@ -54,9 +56,10 @@ function parseDiscord(message) {
     const member = message.guild.members.cache.get(message.author.id);
 
     if (msg.startsWith(prefix)) {
-        const params = msg.substring(prefix.length, msg.length).split("/");
+        const params = msg.substring(prefix.length, msg.length).split(" ");
+        console.log(params);
         const command = params[0].toLowerCase();
-        params.splice(0, 3);
+        params.splice(0, 1);
         switch (command) {
             case "stop":
                 if (isAdminDiscord(member)) { sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
@@ -68,7 +71,7 @@ function parseDiscord(message) {
                     if (code.length) {
                         sendDMDiscord(message.author, "Verification-code", `Code: ${code}`);
                     } else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
-                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verified!"); }
+                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verify!"); }
                 break;
             default:
                 sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
@@ -83,19 +86,19 @@ function parseDiscord(message) {
 }
 
 function parseTwitch(channel, userState, message) {
-    const params = message.split("/");
-    const command = params[2].toLowerCase();
+    const params = message.substring(prefix.length, message.length).split(" ");
+    const command = params[0].toLowerCase();
     const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
-    params.splice(0, 3);
+    params.splice(0, 1);
 
     switch (command) {
         case "verify":
             if (params.length > 0) {
                 if (!isVerifiedTwitch(userState)) {
                     if (verify(userState, params[0])) {
-                        sendMessageTwitch(channel, `Successfully verified you, ${userState.name}!`); // TODO: check if works!
+                        sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`);
                     } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
-                } else { sendMessageTwitch(channel, "You have already been verified!"); }
+                } else { sendMessageTwitch(channel, "You have already been verify!"); }
             } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
             break;
         default:
@@ -126,8 +129,8 @@ async function parseConsole(url) {
 
 function createVerify(discordId) {
     const code = "" + discordId + "-" + Date.now();
-    const path = "./verify/discord/" + discordId;
-    if (!sumLength(readFile(path))) { return ""; } // return empty if verify-code has already been requested
+    const path = __dirname + "/verify/discord/" + discordId + ".txt";
+    if (sumLength(readFile(path))) { return ""; } // return empty if verify-code has already been requested
     writeLineToFile(path, code);
     return code;
 }
@@ -136,14 +139,13 @@ function verify(userState, code) {
     if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual code
 
     const discordId   = code.split("-")[0];
-    const verifyCode  = code.split("-")[1];
-    const pathDiscord = "./verify/discord/" + discordId;
-    const pathTwitch  = "./verify/discord/" + "TWITCH-ID"; // TODO: change to twitch id
+    const pathDiscord = __dirname + "/verify/discord/" + discordId + ".txt";
+    const pathTwitch  = __dirname + "/verify/twitch/" + userState['id'] + ".txt";
 
     const read = readFile(pathDiscord);
     if (read.length === 1) {
-        if (read[0] === verifyCode) {
-            writeLineToFile(pathDiscord, "TWITCH-ID"); // TODO: change to twitch id
+        if (read[0] === code) {
+            writeLineToFile(pathDiscord, "" + userState['id']);
             writeLineToFile(pathTwitch , discordId);
             return true;
         }
@@ -151,17 +153,17 @@ function verify(userState, code) {
     return false;
 }
 
-// File structure: name: discord-id; line1: verify_code; line2: tiwthc-id (if verified)
-function isVerifiedDiscord(discordId) { return readFile("./verify/discord/" + discordId).length > 1; }
+// File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verify)
+function isVerifiedDiscord(discordId) { return readFile(__dirname + "/verify/discord/" + discordId + ".txt").length > 1; }
 
-// File structure: name: twitch-id line1: discord-id (if verified)
-function isVerifiedTwitch(userState) { return readFile("./verify/twitch/" + "TWITCH-ID").length > 0; } // TODO: find way to get twitch user id
+// File structure: name: twitch-id line1: discord-id (if verify)
+function isVerifiedTwitch(userState) { return readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt").length > 0; }
 
 ////////////////////
 // Twitch backend //
 ////////////////////
 
-const channel = "#" + (TESTING ? "thattouch" : "missdokidoki");
+const channel = TESTING ? "thattouch" : "missdokidoki";
 
 // Roles
 const BROADCASTER = "Broadcaster";
@@ -169,10 +171,12 @@ const ADMIN       = "Admin";
 const MODERATOR   = "Moderator";
 const VIP         = "VIP";
 const SUBSCRIBER  = "Subscriber";
+const PRIME       = "Prime sub";
 const VIEWER      = "Viewer";
 
 const adminLevels = [
     VIEWER,
+    PRIME,
     SUBSCRIBER,
     VIP,
     MODERATOR,
@@ -187,7 +191,7 @@ const clientTwitch = new tmi.Client({
     connection: { reconnect: true, secure: true },
     identity: {
         username: "BanananaBotto",
-        password: "oauth:ybomr1iw89kxr7yyu058h9g3l9jwyz" // TODO: reset OAuth since it expired
+        password: "oauth:" + process.env.TWITCH
     },
     channels: ["#" + channel]
 });
@@ -207,6 +211,7 @@ function getUserTypeTwitch(userState) {
     if (userState.mod                  ) { return MODERATOR;   }
     if (userState.badges['vip']        ) { return VIP;         }
     if (userState.subscriber           ) { return SUBSCRIBER;  }
+    if (userState.badges['premium']    ) { return PRIME;  }
     logWarning("No role determined from:");
     logData(userState.badges);
     return VIEWER;
@@ -225,7 +230,7 @@ function getAdminLevelTwitch(type) {
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
-clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Phasmo randomizer bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
+clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
 clientDiscord.on(Events.MessageCreate, message => { parseDiscord(message); });
 
@@ -238,19 +243,16 @@ async function startDiscord() {
     while (!ready) { await sleep(0.25); }
 }
 
+async function stopDiscord() { await clientDiscord.close(); tasksBusy.discord = false; }
+
 function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbed(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
+function sendDMDiscord(user, title, message) { user.send(message); }
 
 function sendChannelEmbed(channel, title, description, col, fields) {
     let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
     for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
     channel.send({ embeds: [embed] });
 }
-
-function sendDMDiscord(user, title, message) {
-    user.send(message);
-}
-
-async function stopDiscord() { await clientDiscord.close(); tasksBusy.discord = false; }
 
 function isAdminDiscord(member) { return member.roles.cache.some((role) => { return contains(adminRoles, role.name); }); }
 
@@ -280,7 +282,7 @@ app.get("/"     , (req, res) => { res.render("index", { status: (program === nul
 const server = http.createServer(app);
 server.listen(3000, () => { tasksBusy.console = true; program = start(); });
 
-async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // TODO: fix error!
+async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // FIXME: fix error on program stop!
 
 /////////////////
 // BOT backend //
@@ -329,14 +331,4 @@ function sumLength(array) {
     return total;
 }
 
-function writeLineToFile(path, line) {
-    let writeStream = fs.createWriteStream(path);
-    writeStream.write(line + "\n");
-    writeStream.end();
-}
-
-function writeLinesToFile(path, lines) {
-    let writeStream = fs.createWriteStream(path);
-    for (let i = 0; i < lines.length; i++) { writeStream.write(lines[i] + "\n"); }
-    writeStream.end();
-}
+function writeLineToFile(path, line) { fs.appendFile(path, line + "\n", err => { logError(err); }); }
