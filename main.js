@@ -49,12 +49,18 @@ async function stop() {
 }
 
 function parseDiscord(message) {
-    if (message.content.startsWith(prefix)) {
+    if (message.content.startsWith(prefix)) { // Check if the message is a command
+        // Grab needed info for the commands
         const params = message.content.substring(prefix.length, message.content.length).split(" ");
         const command = params[0].toLowerCase();
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
+
         switch (command) {
+            case "debug":
+                logInfo("Debug-info:");
+                logData(message);
+                break;
             case "help":
                 sendChannelEmbedDiscord(message.channel, "Commands:", "...", color, [
                     [`${prefix}help`, "Displays the help page", false],
@@ -63,14 +69,14 @@ function parseDiscord(message) {
                 break;
             case "stop":
                 if (isAdminDiscord(member)) { sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
-                else { sendChannelMessageDiscord(message.channel, "No permission", "You do not have the required role to use this command!"); }
+                else { sendChannelEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", "#ff5555", []); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
                     const code = createVerify(message.author.id);
                     if (code.length) { sendDMDiscord(message.author, "Verification-code", `Code: ${code}`); }
                     else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
-                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verify!"); }
+                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verified!"); }
                 break;
             default:
                 sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
@@ -81,27 +87,36 @@ function parseDiscord(message) {
 }
 
 function parseTwitch(channel, userState, message) {
-    if (message.startsWith(prefix)) {
+    if (message.startsWith(prefix)) { // Check if the message is a command
+        // Gather the needed info for the command
         const params = message.substring(prefix.length, message.length).split(" ");
         const command = params[0].toLowerCase();
+        const userId = userState['id'];
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
 
         switch (command) {
+            case "debug":
+                logInfo("Debug-info:");
+                logInfo(channel + ": " + message);
+                logData(userState);
+                break;
             case "help":
                 sendMessageTwitch(channel, `Commands:\n${prefix}verify\n${prefix}sync`);
                 break;
             case "sync":
-                sendMessageTwitch(channel, "Command not implemented yet! come back later to manually sync your subs with your discord account");
-                // TODO: implement
+                if (isVerifiedTwitch(userId)) {
+                    syncTwitchDiscord(userState);
+                    sendMessageTwitch(channel, "Command not implemented yet! come back later to manually sync your subs with your discord account");
+                } else { sendMessageTwitch(channel, "You can only use this command if ypu have linked your discord account!"); }
                 break;
             case "verify":
                 if (params.length > 0) {
-                    if (!isVerifiedTwitch(userState)) {
-                        if (verify(userState, params[0])) {
+                    if (!isVerifiedTwitch(userId)) {
+                        if (verify(userId, params[0])) {
                             sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`);
                         } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
-                    } else { sendMessageTwitch(channel, "You have already been verify!"); }
+                    } else { sendMessageTwitch(channel, "You have already been verified!"); }
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
             default:
@@ -109,11 +124,6 @@ function parseTwitch(channel, userState, message) {
                 logData(params);
                 break;
         }
-    } else {
-        logWarning("Unused twitch event");
-        logData(userState);
-        logData(message);
-        logData(channel);
     }
 }
 
@@ -139,17 +149,17 @@ function createVerify(discordId) {
     return code;
 }
 
-function verify(userState, code) {
+function verify(twitchId, code) {
     if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual verification-code
 
     const discordId   = code.split("-")[0];
     const pathDiscord = __dirname + "/verify/discord/" + discordId + ".txt";
-    const pathTwitch  = __dirname + "/verify/twitch/" + userState['id'] + ".txt";
+    const pathTwitch  = __dirname + "/verify/twitch/" + twitchId + ".txt";
 
     const read = readFile(pathDiscord);
     if (read.length === 1) { // Check if there's a line used, due to how it formats, the first line is the code, and thus it can be checked to see if there was a code requested
         if (read[0] === code) { // Verify if code is the same as noted in the file
-            writeLineToFile(pathDiscord, "" + userState['id']);
+            writeLineToFile(pathDiscord, "" + twitchId);
             writeLineToFile(pathTwitch , discordId);
             return true;
         }
@@ -157,11 +167,25 @@ function verify(userState, code) {
     return false;
 }
 
-// File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verify)
+// File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verified)
 function isVerifiedDiscord(discordId) { return readFile(__dirname + "/verify/discord/" + discordId + ".txt").length > 1; }
 
-// File structure: name: twitch-id line1: discord-id (if verify)
-function isVerifiedTwitch(userState) { return readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt").length > 0; }
+// File structure: name: twitch-id line1: discord-id (if verified)
+function isVerifiedTwitch(twitchId) { return readFile(__dirname + "/verify/twitch/" + twitchId + ".txt").length > 0; }
+
+function syncTwitchDiscord(userState) {
+    const discordId = "" + (readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt")[0]);
+    const guidId = ""; // TODO: add guild id to .env
+
+    // TODO implement rest of the command
+    // Info:
+    /* get guild user
+     * use twitch's userState to find all the roles it should give
+     * give roles to the user
+     *
+     * this command shouldn't remove any roles from the user
+     */
+}
 
 ////////////////////
 // Twitch backend //
