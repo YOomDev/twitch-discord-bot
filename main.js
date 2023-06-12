@@ -19,7 +19,7 @@ let adminRoles = ["Admin", "Dev"];
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false, console: false };
 let program = null;
-let closing = false;
+let closing = false; // Tells the program thread that closing has already been initiated so it cant be called twice at the same time
 let ready = false; // Used by bots during its start to wait till its ready
 
 // settings file
@@ -50,11 +50,17 @@ async function stop() {
 
 function parseDiscord(message) {
     if (message.content.startsWith(prefix)) {
-        const params = message.content.substring(prefix.length, msg.length).split(" ");
+        const params = message.content.substring(prefix.length, message.content.length).split(" ");
         const command = params[0].toLowerCase();
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
         switch (command) {
+            case "help":
+                sendChannelEmbedDiscord(message.channel, "Commands:", "...", color, [
+                    [`${prefix}help`, "Displays the help page", false],
+                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false]
+                ]);
+                break;
             case "stop":
                 if (isAdminDiscord(member)) { sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
                 else { sendChannelMessageDiscord(message.channel, "No permission", "You do not have the required role to use this command!"); }
@@ -62,9 +68,8 @@ function parseDiscord(message) {
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
                     const code = createVerify(message.author.id);
-                    if (code.length) {
-                        sendDMDiscord(message.author, "Verification-code", `Code: ${code}`);
-                    } else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
+                    if (code.length) { sendDMDiscord(message.author, "Verification-code", `Code: ${code}`); }
+                    else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
                 } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verify!"); }
                 break;
             default:
@@ -83,6 +88,13 @@ function parseTwitch(channel, userState, message) {
         params.splice(0, 1);
 
         switch (command) {
+            case "help":
+                sendMessageTwitch(channel, `Commands:\n${prefix}verify\n${prefix}sync`);
+                break;
+            case "sync":
+                sendMessageTwitch(channel, "Command not implemented yet! come back later to manually sync your subs with your discord account");
+                // TODO: implement
+                break;
             case "verify":
                 if (params.length > 0) {
                     if (!isVerifiedTwitch(userState)) {
@@ -233,14 +245,15 @@ async function startDiscord() {
     tasksBusy.discord = true;
     discord = clientDiscord.login(process.env.DISCORD).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
+    ready = false;
 }
 
-async function stopDiscord() { await clientDiscord.close(); tasksBusy.discord = false; }
+async function stopDiscord() { clientDiscord.close().then(_ => { tasksBusy.discord = false; ready = true; }); while (!ready) { await sleep(0.25); ready = false; } }
 
-function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbed(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
+function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbedDiscord(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
 function sendDMDiscord(user, title, message) { user.send(message); }
 
-function sendChannelEmbed(channel, title, description, col, fields) {
+function sendChannelEmbedDiscord(channel, title, description, col, fields) {
     let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
     for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
     channel.send({ embeds: [embed] });
@@ -301,10 +314,7 @@ function readFile(path) {
             if (line.length) { lines.push(line); }
         }
         return lines;
-    } catch (err) {
-        console.error(err);
-        return [];
-    }
+    } catch (err) { logError(err); return []; }
 }
 
 function sumLength(array) {
