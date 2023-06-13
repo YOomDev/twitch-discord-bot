@@ -16,17 +16,17 @@ let adminRoles = ["Admin", "Dev"];
 // Memory //
 ////////////
 
+// settings file
+require('dotenv').config();
+
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false, console: false };
 let program = null;
 let closing = false; // Tells the program thread that closing has already been initiated so it cant be called twice at the same time
 let ready = false; // Used by bots during its start to wait till its ready
 
-const discordAllowedGuilds = process.env.DISCORD_GUILDS.split(",");
-const discordAllowedChannels = process.env.DISCORD_CHANNELS.split(",");
-
-// settings file
-require('dotenv').config();
+const discordAllowedGuilds = ("" + process.env.DISCORDGUILDS).split(",");
+const discordAllowedChannels = ("" + process.env.DISCORDCHANNELS).split(",");
 
 /////////
 // BOT //
@@ -316,7 +316,7 @@ app.get("/"     , (req, res) => { res.render("index", { status: (program === nul
 
 // Start the server
 const server = http.createServer(app);
-server.listen(parseInt(process.env.CONSOLE_PORT, 10), () => { tasksBusy.console = true; program = start(); });
+server.listen(parseInt(process.env.CONSOLEPORT, 10), () => { tasksBusy.console = true; program = start(); });
 
 async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // FIXME: fix error on program stop!
 
