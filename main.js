@@ -179,19 +179,21 @@ function verify(twitchId, code) {
 function isVerifiedDiscord(discordId) { return readFile(__dirname + "/verify/discord/" + discordId + ".txt").length > 1; }
 
 // File structure: name: twitch-id line1: discord-id (if verified)
-function isVerifiedTwitch(twitchId) { return readFile(__dirname + "/verify/twitch/" + twitchId + ".txt").length > 0; }
+function isVerifiedTwitch(twitchId  ) { return readFile(__dirname + "/verify/twitch/" + twitchId   + ".txt").length > 0; }
 
 function syncTwitchDiscord(userState) {
     const discordId = parseInt("" + readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt")[0]);
 
-    // TODO implement rest of the command
-    // Info:
-    /* find guild with user
-     * use twitch's userState to find all the roles it should give
-     * give roles to the user
-     *
-     * this command shouldn't remove any roles from the user
-     */
+    clientDiscord.guilds.cache.forEach(guild => {
+        if (contains(discordAllowedGuilds, "" + guild.id)) {
+            guild.members.cache.forEach(member => {
+                if (discordId == member.id) {
+                    // TODO: use twitch's userState to find all the roles it should give
+                    // TODO: give roles to the user
+                }
+            });
+        }
+    });
 }
 
 ////////////////////
