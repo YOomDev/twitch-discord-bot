@@ -22,6 +22,9 @@ let program = null;
 let closing = false; // Tells the program thread that closing has already been initiated so it cant be called twice at the same time
 let ready = false; // Used by bots during its start to wait till its ready
 
+const discordAllowedGuilds = process.env.DISCORD_GUILDS.split(",");
+const discordAllowedChannels = process.env.DISCORD_CHANNELS.split(",");
+
 // settings file
 require('dotenv').config();
 
@@ -55,6 +58,8 @@ function parseDiscord(message) {
         const command = params[0].toLowerCase();
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
+
+        if (contains())
 
         switch (command) {
             case "debug":
@@ -94,6 +99,9 @@ function parseTwitch(channel, userState, message) {
         const userId = userState['id'];
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
+
+        // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
+        if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
         switch (command) {
             case "debug":
@@ -174,12 +182,11 @@ function isVerifiedDiscord(discordId) { return readFile(__dirname + "/verify/dis
 function isVerifiedTwitch(twitchId) { return readFile(__dirname + "/verify/twitch/" + twitchId + ".txt").length > 0; }
 
 function syncTwitchDiscord(userState) {
-    const discordId = "" + (readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt")[0]);
-    const guidId = ""; // TODO: add guild id to .env
+    const discordId = parseInt("" + readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt")[0]);
 
     // TODO implement rest of the command
     // Info:
-    /* get guild user
+    /* find guild with user
      * use twitch's userState to find all the roles it should give
      * give roles to the user
      *
@@ -309,13 +316,20 @@ app.get("/"     , (req, res) => { res.render("index", { status: (program === nul
 
 // Start the server
 const server = http.createServer(app);
-server.listen(3000, () => { tasksBusy.console = true; program = start(); });
+server.listen(parseInt(process.env.CONSOLE_PORT, 10), () => { tasksBusy.console = true; program = start(); });
 
 async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // FIXME: fix error on program stop!
 
 /////////////////
 // BOT backend //
 /////////////////
+
+function equals(first, second) {
+    switch (first) {
+        case second: return true;
+        default: return false;
+    }
+}
 
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (array[i] == value) { return true; } } return false; }
 
