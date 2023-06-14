@@ -112,8 +112,8 @@ function parseTwitch(channel, userState, message) {
                 break;
             case "sync":
                 if (isVerifiedTwitch(userId)) {
-                    syncTwitchDiscord(userState);
-                    sendMessageTwitch(channel, "Command not implemented yet! come back later to manually sync your subs with your discord account");
+                     if (syncTwitchDiscord(userState)) { sendMessageTwitch(channel, "Synced roles!"); }
+                     else { sendMessageTwitch(channel, "There was a problem syncing the roles, could find the user in the servers"); }
                 } else { sendMessageTwitch(channel, "You can only use this command if ypu have linked your discord account!"); }
                 break;
             case "verify":
@@ -181,22 +181,21 @@ function isVerifiedTwitch(twitchId) { return readFile(__dirname + "/verify/twitc
 
 function syncTwitchDiscord(userState) {
     const discordId = parseInt("" + readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt")[0]);
+    clientDiscord.guilds.cache.forEach(guild => {
+       guild.members.cache.forEach(member => {
+           if (equals(discordId, "" + member.id)) {
+               // TODO: use userState to give roles to the member
 
-    // TODO implement rest of the command
-    // Info:
-    /* find guild with user
-     * use twitch's userState to find all the roles it should give
-     * give roles to the user
-     *
-     * this command shouldn't remove any roles from the user
-     */
+               return true
+           }
+       });
+    });
+    return false;
 }
 
 ////////////////////
 // Twitch backend //
 ////////////////////
-
-const channel = TESTING ? "thattouch" : "missdokidoki";
 
 // Roles
 const BROADCASTER = "Broadcaster";
@@ -226,7 +225,7 @@ const clientTwitch = new tmi.Client({
         username: "BanananaBotto",
         password: "oauth:" + process.env.TWITCH
     },
-    channels: ["#" + channel]
+    channels: ["#" + process.env.TWITCHCHANNEL]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
