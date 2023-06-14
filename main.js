@@ -59,13 +59,8 @@ function parseDiscord(message) {
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
 
-        if (!contains(discordAllowedGuilds, "" + message.guildId) || !contains(discordAllowedChannels, "" + message.channelId)) {
-            if (equals(command, "debug")) {
-                logInfo("Debug-info:");
-                logData(message);
-            }
-            return;
-        }
+        // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
+        if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
         switch (command) {
             case "debug":
@@ -105,9 +100,6 @@ function parseTwitch(channel, userState, message) {
         const userId = userState['id'];
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
-
-        // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
-        if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
         switch (command) {
             case "debug":
