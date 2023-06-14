@@ -59,7 +59,13 @@ function parseDiscord(message) {
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
 
-        if (contains())
+        if (!contains(discordAllowedGuilds, "" + message.guildId) || !contains(discordAllowedChannels, "" + message.channelId)) {
+            if (equals(command, "debug")) {
+                logInfo("Debug-info:");
+                logData(message);
+            }
+            return;
+        }
 
         switch (command) {
             case "debug":
