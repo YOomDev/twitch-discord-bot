@@ -185,7 +185,11 @@ function syncTwitchDiscord(userState) {
        guild.members.cache.forEach(member => {
            if (equals(discordId, "" + member.id)) {
                // TODO: use userState to give roles to the member
-
+               if (userState.badges['broadcaster']) {  }
+               if (userState.mod                  ) {  }
+               if (userState.badges['vip']        ) {  }
+               if (userState.subscriber           ) {  }
+               if (userState.badges['premium']    ) {  }
                return true
            }
        });
