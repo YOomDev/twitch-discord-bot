@@ -59,8 +59,6 @@ function parseDiscord(message) {
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
 
-        if (contains())
-
         switch (command) {
             case "debug":
                 logInfo("Debug-info:");
@@ -69,7 +67,7 @@ function parseDiscord(message) {
             case "help":
                 sendChannelEmbedDiscord(message.channel, "Commands:", "...", color, [
                     [`${prefix}help`, "Displays the help page", false],
-                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false]
+                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false],
                 ]);
                 break;
             case "stop":
@@ -121,9 +119,8 @@ function parseTwitch(channel, userState, message) {
             case "verify":
                 if (params.length > 0) {
                     if (!isVerifiedTwitch(userId)) {
-                        if (verify(userId, params[0])) {
-                            sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`);
-                        } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
+                        if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`); }
+                        else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
                     } else { sendMessageTwitch(channel, "You have already been verified!"); }
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
@@ -167,8 +164,8 @@ function verify(twitchId, code) {
     const read = readFile(pathDiscord);
     if (read.length === 1) { // Check if there's a line used, due to how it formats, the first line is the code, and thus it can be checked to see if there was a code requested
         if (read[0] === code) { // Verify if code is the same as noted in the file
-            writeLineToFile(pathDiscord, "" + twitchId);
-            writeLineToFile(pathTwitch , discordId);
+            writeLineToFile(pathDiscord, "" + twitchId); // Add a link to the twitch accoun to the discord file, mostly just used to see if account is linked
+            writeLineToFile(pathTwitch , discordId); // Add a backwards link for commands that will use twitch users info to do things like change roles on the discord account
             return true;
         }
     }
@@ -200,8 +197,6 @@ function syncTwitchDiscord(userState) {
 // Twitch backend //
 ////////////////////
 
-const channel = TESTING ? "thattouch" : "missdokidoki";
-
 // Roles
 const BROADCASTER = "Broadcaster";
 const ADMIN       = "Admin";
@@ -227,17 +222,23 @@ const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
     identity: {
-        username: "BanananaBotto",
+        username: process.env.TWITCHNAME,
         password: "oauth:" + process.env.TWITCH
     },
-    channels: ["#" + channel]
+    channels: ["#" + process.env.TWITCHCHANNEL]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
 // starting returns a promise, keep it here, so we can asynchronously use discord as well
 let twitch = 0;
 
-async function startTwitch() { twitch = clientTwitch.connect().catch(err => { logError(err); }).then(_ => { tasksBusy.twitch = true; }); }
+async function startTwitch() {
+    if (!tasksBusy.twitch) {
+        ready = false;
+        twitch = clientTwitch.connect().catch(err => { logError(err); }).then(_ => { tasksBusy.twitch = true; ready = true; });
+        while (!ready) { await sleep(0.25); }
+    }
+}
 
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
@@ -278,10 +279,9 @@ async function startDiscord() {
     tasksBusy.discord = true;
     discord = clientDiscord.login(process.env.DISCORD).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
-    ready = false;
 }
 
-async function stopDiscord() { clientDiscord.close().then(_ => { tasksBusy.discord = false; ready = true; }); while (!ready) { await sleep(0.25); ready = false; } }
+function stopDiscord() { clientDiscord.destroy(); tasksBusy.discord = false; }
 
 function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbedDiscord(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
 function sendDMDiscord(user, title, message) { user.send(message); }
@@ -320,7 +320,7 @@ app.get("/"     , (req, res) => { res.render("index", { status: (program === nul
 const server = http.createServer(app);
 server.listen(parseInt(process.env.CONSOLEPORT, 10), () => { tasksBusy.console = true; program = start(); });
 
-async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // FIXME: fix error on program stop!
+async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await stop(); await program; } process.exit(); }
 
 /////////////////
 // BOT backend //
