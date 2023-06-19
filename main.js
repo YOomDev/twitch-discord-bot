@@ -56,6 +56,10 @@ function parseDiscord(message) {
         // Grab needed info for the commands
         const params = message.content.substring(prefix.length, message.content.length).split(" ");
         const command = params[0].toLowerCase();
+
+        // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
+        if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
+
         const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
 
@@ -97,9 +101,6 @@ function parseTwitch(channel, userState, message) {
         const userId = userState['id'];
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
-
-        // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
-        if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
         switch (command) {
             case "debug":
@@ -185,8 +186,7 @@ function syncTwitchDiscord(userState) {
         if (contains(discordAllowedGuilds, "" + guild.id)) {
             guild.members.cache.forEach(member => {
                 if (discordId == member.id) {
-                    // TODO: use twitch's userState to find all the roles it should give
-                    // TODO: give roles to the user
+                    // Use twitch's userState to find all the roles it should give
                 }
             });
         }
@@ -303,13 +303,13 @@ const http    = require('http');
 const express = require('express');
 const app     = express();
 
-// Setup express for usage
+// Set up express
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname + '/public'));
 
 // Set command interface through page get
 app.get("/cmd/*", (req, res) => {
-    if (tasksBusy.console) { parseConsole(req.url).catch((err) => { logError(err); }); }
+    if (tasksBusy.console) { parseConsole(req.url).catch(err => { logError(err); }); }
     sleep(0.05).then(() => { res.redirect("/"); }); // redirects back to the home page
 });
 
@@ -318,7 +318,7 @@ app.get("/"     , (req, res) => { res.render("index", { status: (program === nul
 
 // Start the server
 const server = http.createServer(app);
-server.listen(parseInt(process.env.CONSOLEPORT, 10), () => { tasksBusy.console = true; program = start(); });
+server.listen(parseInt(process.env.CONSOLEPORT, 10), _ => { tasksBusy.console = true; program = start(); });
 
 async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await stop(); await program; } process.exit(); }
 
@@ -337,8 +337,8 @@ function contains(array, value) { for (let i = 0; i < array.length; i++) { if (a
 
 function logError(err)   { console.error("ERROR:\t", err ); }
 function logWarning(err) { console.error("Warning:", err ); }
-function logInfo(info)   { console.log("Info:\t"   , info); }
-function logData(data)   { console.log(              data); }
+function logInfo(info)   { console.log  ("Info:\t" , info); }
+function logData(data)   { console.log  (            data); }
 async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
 
 const fs = require('fs');
