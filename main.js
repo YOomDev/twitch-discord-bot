@@ -103,7 +103,7 @@ function parseTwitch(channel, userState, message) {
 
         switch (command) {
             case "debug":
-                logInfo("Debug-info:");
+                logInfo("Twitch Debug-info:");
                 logInfo(channel + ": " + message);
                 logData(userState);
                 break;
@@ -113,8 +113,8 @@ function parseTwitch(channel, userState, message) {
             case "sync":
                 if (isVerifiedTwitch(userId)) {
                      if (syncTwitchDiscord(userState)) { sendMessageTwitch(channel, "Synced roles!"); }
-                     else { sendMessageTwitch(channel, "There was a problem syncing the roles, could find the user in the servers"); }
-                } else { sendMessageTwitch(channel, "You can only use this command if ypu have linked your discord account!"); }
+                     else { sendMessageTwitch(channel, "There was a problem syncing the roles, could not find the user in the servers"); }
+                } else { sendMessageTwitch(channel, "You can only use this command if you have linked your discord account!"); }
                 break;
             case "verify":
                 if (params.length > 0) {
