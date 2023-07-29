@@ -226,7 +226,7 @@ const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
     identity: {
-        username: "BanananaBotto",
+        username: process.env.TWITCHNAME,
         password: "oauth:" + process.env.TWITCH
     },
     channels: ["#" + process.env.TWITCHCHANNEL]
