@@ -266,33 +266,6 @@ function getAdminLevelTwitch(type) {
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
-const { createAudioPlayer, AudioPlayerStatus, createAudioResource } = require('discord.js/voice');
-
-const audioPlayerDiscord = createAudioPlayer();
-
-let audioQueue = [];
-let audioPlaying = false;
-
-async function playDiscordSound(path) {
-    audioQueue.push(path);
-    if (!audioPlaying) {
-        audioPlaying = true;
-        while (audioQueue.length > 0) {
-            player.play(createAudioResource(path));
-            while (!(player.status === AudioPlayerStatus.Idle)) { await sleep(0.1); }
-        }
-        audioPlaying = false;
-    }
-}
-
-clientDiscord.on(Events.VoiceServerUpdate, (channel, user) => {
-    // TODO: if user has streamer role then auto join the channel using the voice player
-});
-
-function connectAudioPlayerToChannel(channel) {
-
-}
-
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
