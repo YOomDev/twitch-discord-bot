@@ -1,5 +1,4 @@
 const TESTING = true
-
 let tmp = 0;
 
 //////////////
@@ -280,7 +279,7 @@ async function startDiscord() {
     ready = false;
 }
 
-async function stopDiscord() { clientDiscord.close().then(_ => { tasksBusy.discord = false; ready = true; }); while (!ready) { await sleep(0.25); ready = false; } }
+async function stopDiscord() { clientDiscord.destroy(); await sleep(0.25); tasksBusy.discord = false; }
 
 function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbedDiscord(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
 function sendDMDiscord(user, title, message) { user.send(message); }
@@ -319,7 +318,7 @@ app.get("/"     , (req, res) => { res.render("index", { status: (program === nul
 const server = http.createServer(app);
 server.listen(parseInt(process.env.CONSOLEPORT, 10), () => { tasksBusy.console = true; program = start(); });
 
-async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await program; } process.exit(); } // FIXME: fix error on program stop!
+async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await stop(); await program; } process.exit(); }
 
 /////////////////
 // BOT backend //
