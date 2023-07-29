@@ -286,7 +286,7 @@ async function playDiscordSound(path) {
 }
 
 clientDiscord.on(Events.VoiceServerUpdate, (channel, user) => {
-    // TODO: if user has streamer role then auto join the channel using the voiceplayer
+    // TODO: if user has streamer role then auto join the channel using the voice player
 });
 
 function connectAudioPlayerToChannel(channel) {
