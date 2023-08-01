@@ -263,11 +263,51 @@ function getAdminLevelTwitch(type) {
 /////////////////////
 
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
-const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-
+const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
+
+const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
+
+const audioPlayerDiscord = createAudioPlayer({
+    behaviors: {
+        noSubscriber: NoSubscriberBehavior.Pause,
+    },
+});
+let audioConnection = null;
+
+clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
+    if (oldState.member.roles.cache.some(role => { return equals(role.name, process.env.STREAMER_ROLE_NAME); })) {
+        if (newState.channel !== null) {
+            console.log(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
+
+            // Member joined channel
+            if (audioConnection) {
+                audioConnection.destroy();
+                audioConnection = null;
+            }
+            const channel = newState.channel;
+            audioConnection = joinVoiceChannel({
+                channelId: channel.id,
+                guildId: channel.guild.id,
+                adapterCreator: channel.guild.voiceAdapterCreator
+            });
+            // audioSubscription = audioConnection.subscribe(audioPlayerDiscord);
+
+            //let file = createAudioResource(__dirname + "/sounds/sound.mp3");
+            //audioConnection.subscribe(audioPlayerDiscord);
+            //audioPlayerDiscord.play(file);
+        } else {
+            console.log(`User ${oldState.member.user.username} left channel ${oldState.channel.id}`);
+            // Member left channel
+            if (audioConnection) {
+                audioConnection.destroy();
+                audioConnection = null;
+            }
+        }
+    }
+})
 
 let discord = 0;
 
