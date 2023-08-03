@@ -27,6 +27,8 @@ let ready = false; // Used by bots during its start to wait till its ready
 const discordAllowedGuilds = ("" + process.env.DISCORDGUILDS).split(",");
 const discordAllowedChannels = ("" + process.env.DISCORDCHANNELS).split(",");
 
+const audioFormats = [".mp3", ".ogg", ".wav"];
+
 /////////
 // BOT //
 /////////
@@ -139,6 +141,16 @@ async function parseConsole(url) {
     switch (command) {
         case "stop":
             await stopConsole();
+            break;
+        case "audio":
+            if (equals("clear", params[0])) { audioQueue = []; logInfo("Console cleared the audio queue!") }
+            else if (equals("stop", params[0])) { if (!audioPlayerDiscord.stop()) { logWarning("Console tried to stop the audio player while it was not playing anything!"); } }
+            else if (equals("play", params[0]) && params.length > 1) {
+                params.splice(0, 1);
+                const name = concatenateList(params, " ");
+                logInfo(`Console added audio to queue: '${name.substring(1, name.length)}'`);
+                playAudio(name.substring(1, name.length)).catch(_ => {});
+            } else { logWarning(`Invalid console command received! (${command + concatenateList(params, "\/", "")})`); }
             break;
         default:
             logWarning(`Unknown console command: ${command}`);
@@ -275,12 +287,47 @@ const audioPlayerDiscord = createAudioPlayer({
         noSubscriber: NoSubscriberBehavior.Pause,
     },
 });
+
+audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing '${error.resource.metadata.title}'. Full error: (${error.message})`); });
+
 let audioConnection = null;
+let audioQueue = [];
+let audioPlaying = false;
+
+async function playAudio(path = "") {
+    while (path.endsWith(" ")) { path = path.substring(0, path.length - 1); }
+    if (path.length > 0) { audioQueue.push(path); }
+    if (!audioPlaying && audioQueue.length > 0) {
+        audioPlaying = true;
+        while (audioQueue.length > 0) {
+            while (audioPlayerDiscord.state.status !== AudioPlayerStatus.Idle) { await sleep(0.25) }
+            const audio = createAudioResource(__dirname + "/sounds/" + audioQueue[0], { metadata: { title: audioQueue[0] } });
+            audioQueue.splice(0, 1);
+            audioPlayerDiscord.play(audio);
+        }
+        audioPlaying = false;
+    }
+}
+
+function createAudioButtons() {
+    let result = "";
+    const files = listFilesInFolder(__dirname + "/sounds/");
+    if (files.length < 1) { return "No audio files in sounds directory."; }
+    for (let i = 0; i < files.length; i++) {
+        for (let j = 0; j < audioFormats.length; j++) {
+            if (files[i].endsWith(audioFormats[j])) { // Check if file is audio file
+                result += `<button onclick=\"command(\'audio/play/${files[i].replaceAll(" ", "\/")}\')\" type=\"button\">${files[i]}</button>`;
+                break;
+            }
+        }
+    }
+    return result;
+}
 
 clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
     if (oldState.member.roles.cache.some(role => { return equals(role.name, process.env.STREAMER_ROLE_NAME); })) {
         if (newState.channel !== null) {
-            console.log(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
+            logInfo(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
 
             // Member joined channel
             if (audioConnection) {
@@ -293,13 +340,10 @@ clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
                 guildId: channel.guild.id,
                 adapterCreator: channel.guild.voiceAdapterCreator
             });
-            // audioSubscription = audioConnection.subscribe(audioPlayerDiscord);
-
-            //let file = createAudioResource(__dirname + "/sounds/sound.mp3");
-            //audioConnection.subscribe(audioPlayerDiscord);
-            //audioPlayerDiscord.play(file);
+            audioConnection.subscribe(audioPlayerDiscord);
+            playAudio().catch(_ => {});
         } else {
-            console.log(`User ${oldState.member.user.username} left channel ${oldState.channel.id}`);
+            logInfo(`User ${oldState.member.user.username} left channel ${oldState.channel.id}`);
             // Member left channel
             if (audioConnection) {
                 audioConnection.destroy();
@@ -352,7 +396,7 @@ app.get("/cmd/*", (req, res) => {
 });
 
 // Set main page get implementation
-app.get("/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); });
+app.get("/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : ""), audioButtons: createAudioButtons(), audioQueued: concatenateList(audioQueue, "<li>", "<\/li>") }); });
 
 // Start the server
 const server = http.createServer(app);
@@ -402,3 +446,19 @@ function sumLength(array) {
 }
 
 function writeLineToFile(path, line) { fs.appendFile(path, line + "\n", err => { logError(err); }); }
+
+function concatenateList(list, prefix = "", suffix = "") {
+    let result = "";
+    for (let i = 0; i < list.length; i++) { result += prefix + list[i] + suffix; }
+    return result;
+}
+
+function listFilesInFolder(path) {
+    let result = [];
+    if (!fs.statSync(path).isDirectory()) { return result; } // Return early if file is not a directory
+    const files = fs.readdirSync(path);
+    for (let i = 0; i < files.length; i++) {
+        result.push("" + files[i]);
+    }
+    return result;
+}
