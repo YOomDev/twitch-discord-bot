@@ -9,12 +9,15 @@
     --button: #79AEA3;
 }
 
-* { margin: 10px; }
+* {
+    padding: 10px;
+    margin: 0;
+}
 
 html {
     margin: 0;
-    padding-bottom: 50px;
-    height: 100%;
+    padding: 0;
+    height: calc(max(100%, auto));
     background-image: linear-gradient(to right top, var(--one) 5%, var(--main) 30%, var(--main) 70%, var(--two) 95%);
     color: var(--text);
     align-content: center;
@@ -48,4 +51,8 @@ button:hover {
     border-radius: 7px;
     color: var(--main);
     min-width: 20%;
+}
+
+ul li {
+
 }
