@@ -149,7 +149,8 @@ async function parseConsole(url) {
                 params.splice(0, 1);
                 const name = concatenateList(params, " ");
                 logInfo(`Console added audio to queue: '${name.substring(1, name.length)}'`);
-                playAudio(name.substring(1, name.length)).catch(_ => {});
+                if (audioPlayerDiscord.state.status === AudioPlayerStatus.Idle) { playAudio(name.substring(1, name.length)).catch(_ => {}); }
+                else { await playAudio(name.substring(1, name.length)); }
             } else { logWarning(`Invalid console command received! (${command + concatenateList(params, "\/", "")})`); }
             break;
         default:
@@ -391,8 +392,7 @@ app.use(express.static(__dirname + '/public'));
 
 // Set command interface through page get
 app.get("/cmd/*", (req, res) => {
-    if (tasksBusy.console) { parseConsole(req.url).catch((err) => { logError(err); }); }
-    sleep(0.05).then(() => { res.redirect("/"); }); // redirects back to the home page
+    if (tasksBusy.console) { parseConsole(req.url).catch((err) => { logError(err); }).then(_ => { res.redirect("/"); }); }
 });
 
 // Set main page get implementation
@@ -457,8 +457,6 @@ function listFilesInFolder(path) {
     let result = [];
     if (!fs.statSync(path).isDirectory()) { return result; } // Return early if file is not a directory
     const files = fs.readdirSync(path);
-    for (let i = 0; i < files.length; i++) {
-        result.push("" + files[i]);
-    }
+    for (let i = 0; i < files.length; i++) { result.push("" + files[i]); }
     return result;
 }
