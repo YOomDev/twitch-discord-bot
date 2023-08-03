@@ -13,6 +13,7 @@
 
 html {
     margin: 0;
+    padding-bottom: 50px;
     height: 100%;
     background-image: linear-gradient(to right top, var(--one) 5%, var(--main) 30%, var(--main) 70%, var(--two) 95%);
     color: var(--text);
