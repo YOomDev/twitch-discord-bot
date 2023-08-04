@@ -1,11 +1,19 @@
-const TESTING = true
-let tmp = 0;
+// Info:
+/*
+ * This bot project was written for a specific streamer,
+ * written in a way that others might be able to use it
+ * as well without having to write too much code, feel
+ * free to adapt it in whatever way you want, but provide
+ * info that is has been changed and what changes have
+ * been made
+ */
 
 //////////////
 // Settings //
 //////////////
 
-const color = "#ff8888"
+const color = "#FF8888"
+const color_error = "#FF3333";
 
 // Commands
 const prefix = "!";
@@ -65,28 +73,28 @@ function parseDiscord(message) {
 
         switch (command) {
             case "debug":
-                logInfo("Debug-info:");
+                logInfo("Discord Debug-info:");
                 logData(message);
                 break;
             case "help":
-                sendChannelEmbedDiscord(message.channel, "Commands:", "...", color, [
+                sendEmbedDiscord(message.channel, "Commands:", "...", color, [
                     [`${prefix}help`, "Displays the help page", false],
                     [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false]
                 ]);
                 break;
             case "stop":
-                if (isAdminDiscord(member)) { sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
-                else { sendChannelEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", "#ff5555", []); }
+                if (isAdminDiscord(member)) { sendEmbedDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
+                else { sendEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", color_error); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
                     const code = createVerify(message.author.id);
-                    if (code.length) { sendDMDiscord(message.author, "Verification-code", `Code: ${code}`); }
-                    else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
-                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verified!"); }
+                    if (code.length) { sendEmbedDiscord(message.author, "Verification-code", `Code: ${code}`); }
+                    else { sendEmbedDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before.", color_error); }
+                } else { sendEmbedDiscord(message.author, "Couldn't verify", "Account is already verified!", color_error); }
                 break;
             default:
-                sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
+                sendEmbedDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`, color_error);
                 logWarning("Discord command not found! (" + command + ")");
                 break;
         }
@@ -102,6 +110,7 @@ function parseTwitch(channel, userState, message) {
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
 
+        // Parse
         switch (command) {
             case "debug":
                 logInfo("Twitch Debug-info:");
@@ -120,9 +129,8 @@ function parseTwitch(channel, userState, message) {
             case "verify":
                 if (params.length > 0) {
                     if (!isVerifiedTwitch(userId)) {
-                        if (verify(userId, params[0])) {
-                            sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`);
-                        } else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
+                        if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`); }
+                        else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
                     } else { sendMessageTwitch(channel, "You have already been verified!"); }
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
@@ -283,12 +291,7 @@ clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== cl
 
 const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
 
-const audioPlayerDiscord = createAudioPlayer({
-    behaviors: {
-        noSubscriber: NoSubscriberBehavior.Pause,
-    },
-});
-
+const audioPlayerDiscord = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
 audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing '${error.resource.metadata.title}'. Full error: (${error.message})`); });
 
 let audioConnection = null;
@@ -366,10 +369,7 @@ async function startDiscord() {
 
 async function stopDiscord() { clientDiscord.destroy(); await sleep(0.25); tasksBusy.discord = false; }
 
-function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbedDiscord(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
-function sendDMDiscord(user, title, message) { user.send(message); }
-
-function sendChannelEmbedDiscord(channel, title, description, col, fields) {
+function sendEmbedDiscord(channel, title, description, col = color, fields = []) {
     let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
     for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
     channel.send({ embeds: [embed] });
@@ -382,9 +382,9 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 ///////////////////
 
 // Console
-const http    = require('http');
+const http = require('http');
 const express = require('express');
-const app     = express();
+const app = express();
 
 // Setup express for usage
 app.set('view engine', 'ejs');
