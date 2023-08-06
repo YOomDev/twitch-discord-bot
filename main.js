@@ -268,7 +268,7 @@ function getUserTypeTwitch(userState) {
     if (userState.mod                  ) { return MODERATOR;   }
     if (userState.badges['vip']        ) { return VIP;         }
     if (userState.subscriber           ) { return SUBSCRIBER;  }
-    if (userState.badges['premium']    ) { return PRIME;  }
+    if (userState.badges['premium']    ) { return PRIME;       }
     logWarning("No role determined from:");
     logData(userState.badges);
     return VIEWER;
@@ -448,7 +448,7 @@ function sumLength(array) {
     return total;
 }
 
-function writeLineToFile(path, line) { fs.appendFile(path, line + "\n", err => { logError(err); }); }
+function writeLineToFile(path, line = "") { fs.appendFile(path, line + "\n", err => { logError(err); }); }
 
 function concatenateList(list, prefix = "", suffix = "") {
     let result = "";
