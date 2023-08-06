@@ -251,10 +251,11 @@ const clientTwitch = new tmi.Client({
     },
     channels: ["#" + process.env.TWITCHCHANNEL]
 });
-clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
-// starting returns a promise, keep it here, so we can asynchronously use discord as well
+// Starting creates a promise that contains the current twitch client, it is stored here to make sure all the different clients can work asynchronously
 let twitch = 0;
+
+clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
 async function startTwitch() { twitch = clientTwitch.connect().catch(err => { logError(err); }).then(_ => { tasksBusy.twitch = true; }); }
 
@@ -357,6 +358,8 @@ clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
     }
 })
 
+
+// Starting creates a promise that contains the current discord client, it is stored here to make sure all the different clients can work asynchronously
 let discord = 0;
 
 async function startDiscord() {
