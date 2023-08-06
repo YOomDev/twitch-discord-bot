@@ -454,8 +454,8 @@ function concatenateList(list, prefix = "", suffix = "") {
 }
 
 function listFilesInFolder(path) {
+    if (!fs.statSync(path).isDirectory()) { return []; } // Return early if file is not a directory
     let result = [];
-    if (!fs.statSync(path).isDirectory()) { return result; } // Return early if file is not a directory
     const files = fs.readdirSync(path);
     for (let i = 0; i < files.length; i++) { result.push("" + files[i]); }
     return result;
