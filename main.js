@@ -28,6 +28,55 @@ let ready = false; // Used by bots during its start to wait till its ready
 const discordAllowedGuilds = ("" + process.env.DISCORDGUILDS).split(",");
 const discordAllowedChannels = ("" + process.env.DISCORDCHANNELS).split(",");
 
+// Custom commands
+const commandFileTypes = ["rand"];
+
+
+
+/////////////////////
+// Custom commands //
+/////////////////////
+
+function parseCustomCommand(command) {
+    const path = __dirname + "\\data\\commands";
+    const filesInCommandFolder = getFilenamesFromFolder(path);
+    const commandFiles = [];
+    for (let i = 0; i < filesInCommandFolder.length; i++) {
+        const parts = filesInCommandFolder[i].split(".");
+        if (parts.length > 1) {
+            for (let j = 0; j < commandFileTypes.length; j++) {
+                if (equals(parts[parts.length - 1].toLowerCase(), commandFileTypes[i].toLowerCase())) {
+                    commandFiles.push(filesInCommandFolder[i]);
+                    break;
+                }
+            }
+        }
+    }
+    let wasCustomCommand = false;
+    let result = "";
+    for (let i = 0; i < commandFiles.length; i++) {
+        const parts = commandFiles[i].split(".");
+        const type = parts[parts.length - 1];
+        parts.splice(parts.length - 1, 1);
+        let customCommand = concat(parts, ".").toLowerCase().replaceAll(" ", ".");
+        if (equals(command.toLowerCase(), customCommand)) {
+            wasCustomCommand = true;
+            switch(type) {
+                case "rand":
+                    const options = readFile(path + "\\" + commandFiles[i]);
+                    result = options.length < 1 ? "ERROR" : options[random(options.length)];
+                    break;
+                default:
+                    logError(`Custom command type \'${"." + type}\' has not been implemented yet for the custom command parser`);
+                    break;
+            }
+            break;
+        }
+    }
+    return result;
+}
+
+
 /////////
 // BOT //
 /////////
@@ -86,8 +135,12 @@ function parseDiscord(message) {
                 } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verified!"); }
                 break;
             default:
-                sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
-                logWarning("Discord command not found! (" + command + ")");
+                const cmdResult = parseCustomCommand(command);
+                if (cmdResult.length) { sendChannelMessageDiscord(message.channel, "Custom commands?", cmdResult); }
+                else {
+                    sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
+                    logWarning("Discord command not found! (" + command + ")");
+                }
                 break;
         }
     }
@@ -126,8 +179,12 @@ function parseTwitch(channel, userState, message) {
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
             default:
-                sendMessageTwitch(channel, `Command \'${command}\' not found!`);
-                logData(params);
+                const cmdResult = parseCustomCommand(command);
+                if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
+                else {
+                    sendMessageTwitch(channel, `Twitch command \'${command}\' not found!`);
+                    logData(params);
+                }
                 break;
         }
     }
@@ -267,6 +324,7 @@ function getAdminLevelTwitch(type) {
 
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+let discord = 0;
 
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 
@@ -326,11 +384,19 @@ async function stopConsole() { server.close((err) => { logError(err); }); logInf
 // BOT backend //
 /////////////////
 
+function random(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
+
 function equals(first, second) {
     switch (first) {
         case second: return true;
         default: return false;
     }
+}
+
+function concat(list, separator = "") {
+    let result = "";
+    for (let i = 0; i < list.length; i++) { result += list[i] + (i < 1 ? "" : separator); }
+    return result;
 }
 
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (array[i] == value) { return true; } } return false; }
@@ -342,6 +408,13 @@ function logData(data)   { console.log  (            data); }
 async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
 
 const fs = require('fs');
+
+function getFilenamesFromFolder(path) {
+    return fs.readdirSync(path, function (err, files) {
+        if (err) { console.log('Unable to scan directory: ' + err); return []; }
+        return files;
+    });
+}
 
 function readFile(path) {
     try {
