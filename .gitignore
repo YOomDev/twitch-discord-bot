@@ -5,3 +5,5 @@ package-lock.json
 .env
 verify/discord/*.txt
 verify/twitch/*.txt
+automated/messages/*.txt
+data/*
