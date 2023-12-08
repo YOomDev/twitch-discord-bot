@@ -9,15 +9,30 @@
         <div id="header"></div>
         <div id="container">
             <h1>Console</h1>
-            <p>Test 123</p>
+            <p>Info: to be written</p>
+            <%-status%>
+            <button onclick="command('stop')" type="button">Stop</button>
+            <br/>
+            <h1>Play audio</h1>
+            <%-audioButtons%>
+            <br/>
+            <h1>Queued audio files</h1>
+            <button onclick="command('audio/clear')" type="button">Clear Queue</button>
+            <button onclick="command('audio/stop')" type="button">Stop current song</button>
+            <ul>
+                <%-audioQueued%>
+            </ul>
+            <br/>
+
+
+            <h1>OLD-TESTING-STUFF</h1>
             <div class="text-input" id="say-input" role="textbox" contenteditable="true" aria-multiline="true" aria-placeholder="Test"></div>
             <button onclick="command('say', 'say-input')" type="button">Say</button><br/>
             <div class="text-input" id="prompt-input" role="textbox" contenteditable="true" aria-multiline="true"></div>
             <button onclick="command('ask', 'prompt-input')" type="button">Ask</button><br/>
-            <%-status%>
-            <button onclick="command('stop')" type="button">Stop</button>
-        </div>
 
+
+        </div>
         <div id="footer"></div>
         <script>
             function command(cmd, source = "", separator = "\/") {

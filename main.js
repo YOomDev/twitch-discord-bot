@@ -3,7 +3,8 @@
 // Settings //
 //////////////
 
-const color = "#ff8888"
+const color = "#FF8888"
+const color_error = "#FF3333";
 
 // Commands
 const prefix = "!";
@@ -28,6 +29,8 @@ let ready = false; // Used by bots during its start to wait till its ready
 
 const discordAllowedGuilds = ("" + process.env.DISCORDGUILDS).split(",");
 const discordAllowedChannels = ("" + process.env.DISCORDCHANNELS).split(",");
+
+const audioFormats = [".mp3", ".ogg", ".wav"];
 
 const twitchChannel = process.env.TWITCHCHANNEL;
 
@@ -95,7 +98,6 @@ async function start() {
 async function stop() {
     if (!closing) {
         closing = true;
-        await stopAutomatedMessagesManager();
         if (tasksBusy.discord) { await stopDiscord(); }
         if (tasksBusy.twitch) { await stopTwitch(); }
     }
@@ -106,42 +108,39 @@ function parseDiscord(message) {
         // Grab needed info for the commands
         const params = message.content.substring(prefix.length, message.content.length).split(" ");
         const command = params[0].toLowerCase();
+        const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
+        params.splice(0, 1);
 
         // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
         if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
-        const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
-        params.splice(0, 1);
-
         switch (command) {
             case "debug":
-                logInfo("Debug-info:");
+                logInfo("Discord Debug-info:");
                 logData(message);
                 break;
             case "help":
-                sendChannelEmbedDiscord(message.channel, "Commands:", "...", color, [
+                sendEmbedDiscord(message.channel, "Commands:", "...", color, [
                     [`${prefix}help`, "Displays the help page", false],
-                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false],
+                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false]
                 ]);
                 break;
             case "stop":
-                if (isAdminDiscord(member)) {
-                    sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots");
-                    stopConsole().catch();
-                } else { sendChannelEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", "#ff5555", []); }
+                if (isAdminDiscord(member)) { sendEmbedDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
+                else { sendEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", color_error); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
                     const code = createVerify(message.author.id);
-                    if (code.length) { sendDMDiscord(message.author, "Verification-code", `Code: ${code}`); }
-                    else { sendDMDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before."); }
-                } else { sendDMDiscord(message.author, "Couldn't verify", "Account is already verified!"); }
+                    if (code.length) { sendEmbedDiscord(message.author, "Verification-code", `Code: ${code}`); }
+                    else { sendEmbedDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before.", color_error); }
+                } else { sendEmbedDiscord(message.author, "Couldn't verify", "Account is already verified!", color_error); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
                 if (cmdResult.length) { sendChannelMessageDiscord(message.channel, "Custom commands?", cmdResult); }
                 else {
-                    sendChannelMessageDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
+                    sendEmbedDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
                     logWarning("Discord command not found! (" + command + ")");
                 }
                 break;
@@ -158,9 +157,10 @@ function parseTwitch(channel, userState, message) {
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
 
+        // Parse
         switch (command) {
             case "debug":
-                logInfo("Debug-info:");
+                logInfo("Twitch Debug-info:");
                 logInfo(channel + ": " + message);
                 logData(userState);
                 break;
@@ -169,8 +169,8 @@ function parseTwitch(channel, userState, message) {
                 break;
             case "sync":
                 if (isVerifiedTwitch(userId)) {
-                    syncTwitchDiscord(userState);
-                    sendMessageTwitch(channel, "Command not implemented yet! come back later to manually sync your subs with your discord account");
+                     if (syncTwitchDiscord(userState)) { sendMessageTwitch(channel, "Synced roles!"); }
+                     else { sendMessageTwitch(channel, "There was a problem syncing the roles, could not find the user in the servers"); }
                 } else { sendMessageTwitch(channel, "You can only use this command if you have linked your discord account!"); }
                 break;
             case "verify":
@@ -203,6 +203,17 @@ async function parseConsole(url) {
             break;
         case "stop":
             await stopConsole();
+            break;
+        case "audio":
+            if (equals("clear", params[0])) { audioQueue = []; logInfo("Console cleared the audio queue!") }
+            else if (equals("stop", params[0])) { if (!audioPlayerDiscord.stop()) { logWarning("Console tried to stop the audio player while it was not playing anything!"); } }
+            else if (equals("play", params[0]) && params.length > 1) {
+                params.splice(0, 1);
+                const name = concatenateList(params, " ");
+                logInfo(`Console added audio to queue: '${name.substring(1, name.length)}'`);
+                if (audioPlayerDiscord.state.status === AudioPlayerStatus.Idle) { playAudio(name.substring(1, name.length)).catch(_ => {}); }
+                else { await playAudio(name.substring(1, name.length)); }
+            } else { logWarning(`Invalid console command received! (${command + concatenateList(params, "\/", "")})`); }
             break;
         default:
             logWarning(`Unknown console command: ${command}`);
@@ -244,16 +255,20 @@ function isVerifiedTwitch(twitchId  ) { return readFile(__dirname + "\\verify\\t
 
 function syncTwitchDiscord(userState) {
     const discordId = parseInt("" + readFile(__dirname + "\\verify\\twitch\\" + userState['id'] + ".txt")[0]);
-
     clientDiscord.guilds.cache.forEach(guild => {
-        if (contains(discordAllowedGuilds, "" + guild.id)) {
-            guild.members.cache.forEach(member => {
-                if (discordId == member.id) {
-                    // TODO: Use twitch's userState to find all the roles it should give
-                }
-            });
-        }
+       guild.members.cache.forEach(member => {
+           if (equals(discordId, "" + member.id)) {
+               // TODO: use userState to give roles to the member
+               if (userState.badges['broadcaster']) {  }
+               if (userState.mod                  ) {  }
+               if (userState.badges['vip']        ) {  }
+               if (userState.subscriber           ) {  }
+               if (userState.badges['premium']    ) {  }
+               return true;
+           }
+       });
     });
+    return false;
 }
 
 
@@ -348,7 +363,7 @@ const clientTwitch = new tmi.Client({
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
-// starting returns a promise, keep it here, so we can asynchronously use discord as well
+// Starting creates a promise that contains the current twitch client, it is stored here to make sure all the different clients can work asynchronously
 let twitch = 0;
 
 async function startTwitch() {
@@ -356,6 +371,7 @@ async function startTwitch() {
         ready = false;
         twitch = clientTwitch.connect().catch(err => { logError(err); }).then(_ => { tasksBusy.twitch = true; ready = true; });
         while (!ready) { await sleep(0.25); }
+        ready = false
     }
 }
 
@@ -385,30 +401,99 @@ function getAdminLevelTwitch(type) {
 /////////////////////
 
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
-const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-let discord = 0;
-
+const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
+
+const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
+
+const audioPlayerDiscord = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
+audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing '${error.resource.metadata.title}'. Full error: (${error.message})`); });
+
+let audioConnection = null;
+let audioQueue = [];
+let audioPlaying = false;
+
+async function playAudio(path = "") {
+    while (path.endsWith(" ")) { path = path.substring(0, path.length - 1); }
+    if (path.length > 0) { audioQueue.push(path); }
+    if (!audioPlaying && audioQueue.length > 0) {
+        audioPlaying = true;
+        while (audioQueue.length > 0) {
+            while (audioPlayerDiscord.state.status !== AudioPlayerStatus.Idle) { await sleep(0.25) }
+            const audio = createAudioResource(__dirname + "/sounds/" + audioQueue[0], { metadata: { title: audioQueue[0] } });
+            audioQueue.splice(0, 1);
+            audioPlayerDiscord.play(audio);
+        }
+        audioPlaying = false;
+    }
+}
+
+function createAudioButtons() {
+    let result = "";
+    const files = listFilesInFolder(__dirname + "/sounds/");
+    if (files.length < 1) { return "No audio files in sounds directory."; }
+    for (let i = 0; i < files.length; i++) {
+        for (let j = 0; j < audioFormats.length; j++) {
+            if (files[i].endsWith(audioFormats[j])) { // Check if file is audio file
+                result += `<button onclick=\"command(\'audio/play/${files[i].replaceAll(" ", "\/")}\')\" type=\"button\">${files[i]}</button>`;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
+    if (oldState.member.roles.cache.some(role => { return equals(role.name, process.env.STREAMER_ROLE_NAME); })) {
+        if (newState.channel !== null) {
+            logInfo(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
+
+            // Member joined channel
+            if (audioConnection) {
+                audioConnection.destroy();
+                audioConnection = null;
+            }
+            const channel = newState.channel;
+            audioConnection = joinVoiceChannel({
+                channelId: channel.id,
+                guildId: channel.guild.id,
+                adapterCreator: channel.guild.voiceAdapterCreator
+            });
+            audioConnection.subscribe(audioPlayerDiscord);
+            playAudio().catch(_ => {});
+        } else {
+            logInfo(`User ${oldState.member.user.username} left channel ${oldState.channel.id}`);
+            // Member left channel
+            if (audioConnection) {
+                audioConnection.destroy();
+                audioConnection = null;
+            }
+        }
+    }
+})
+
+
+// Starting creates a promise that contains the current discord client, it is stored here to make sure all the different clients can work asynchronously
+let discord = 0;
 
 async function startDiscord() {
     ready = false;
     tasksBusy.discord = true;
     discord = clientDiscord.login(process.env.DISCORD).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
+    ready = false;
 }
 
-function stopDiscord() { clientDiscord.destroy(); tasksBusy.discord = false; }
-function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbedDiscord(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
-function sendDMDiscord(user, title, message) { user.send(message); }
+async function stopDiscord() { clientDiscord.destroy(); await sleep(0.25); tasksBusy.discord = false; }
 
-function sendChannelEmbedDiscord(channel, title, description, col, fields) {
+function sendEmbedDiscord(channel, title, description, col = color, fields = []) {
     let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
     for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
     channel.send({ embeds: [embed] });
 }
 
-function isAdminDiscord(member) { return member.roles.cache.some(role => { return contains(adminRoles, role.name); }); }
+function isAdminDiscord(member) { return member.roles.cache.some((role) => { return contains(adminRoles, role.name); }); }
 
 ///////////////////
 // Control panel //
@@ -425,12 +510,11 @@ app.use(express.static(__dirname + '/public'));
 
 // Set command interface through page get
 app.get("/cmd/*", (req, res) => {
-    if (tasksBusy.console) { parseConsole(req.url).catch(err => { logError(err); }); }
-    sleep(0.05).then(() => { res.redirect("/"); }); // redirects back to the home page
+    if (tasksBusy.console) { parseConsole(req.url).catch((err) => { logError(err); }).then(_ => { res.redirect("/"); }); }
 });
 
 // Set main page get implementation
-app.get("/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : "") }); });
+app.get("\/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : ""), audioButtons: createAudioButtons(), audioQueued: concatenateList(audioQueue, "<li>", "<\/li>") }); });
 
 // Start the server
 const server = http.createServer(app);
@@ -494,4 +578,18 @@ function sumLength(array) {
     return total;
 }
 
-function writeLineToFile(path, line) { fs.appendFile(path, line + "\n", err => { logError(err); }); }
+function writeLineToFile(path, line = "") { fs.appendFile(path, line + "\n", err => { logError(err); }); }
+
+function concatenateList(list, prefix = "", suffix = "") {
+    let result = "";
+    for (let i = 0; i < list.length; i++) { result += prefix + list[i] + suffix; }
+    return result;
+}
+
+function listFilesInFolder(path) {
+    if (!fs.statSync(path).isDirectory()) { return []; } // Return early if file is not a directory
+    let result = [];
+    const files = fs.readdirSync(path);
+    for (let i = 0; i < files.length; i++) { result.push("" + files[i]); }
+    return result;
+}
