@@ -6,4 +6,5 @@ package-lock.json
 verify/discord/*.txt
 verify/twitch/*.txt
 automated/messages/*.txt
-data/*
+data/commands/*
+!data/commands/FILES_GO_HERE
