@@ -1,6 +1,3 @@
-const TESTING = true
-
-let tmp = 0;
 
 //////////////
 // Settings //
@@ -36,8 +33,6 @@ const twitchChannel = process.env.TWITCHCHANNEL;
 
 // Custom commands
 const commandFileTypes = ["rand"];
-
-
 
 /////////////////////
 // Custom commands //
@@ -81,7 +76,6 @@ function parseCustomCommand(command) {
     }
     return result;
 }
-
 
 /////////
 // BOT //
@@ -218,7 +212,7 @@ async function parseConsole(url) {
 
 function createVerify(discordId) {
     const code = "" + discordId + "-" + Date.now();
-    const path = __dirname + "/verify/discord/" + discordId + ".txt";
+    const path = __dirname + "\\verify\\discord\\" + discordId + ".txt";
     if (sumLength(readFile(path))) { return ""; } // return empty if verify-code has already been requested
     writeLineToFile(path, code);
     return code;
@@ -228,13 +222,13 @@ function verify(twitchId, code) {
     if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual verification-code
 
     const discordId   = code.split("-")[0];
-    const pathDiscord = __dirname + "/verify/discord/" + discordId + ".txt";
-    const pathTwitch  = __dirname + "/verify/twitch/" + twitchId + ".txt";
+    const pathDiscord = __dirname + "\\verify\\discord\\" + discordId + ".txt";
+    const pathTwitch  = __dirname + "\\verify\\twitch\\" + twitchId + ".txt";
 
     const read = readFile(pathDiscord);
     if (read.length === 1) { // Check if there's a line used, due to how it formats, the first line is the code, and thus it can be checked to see if there was a code requested
         if (read[0] === code) { // Verify if code is the same as noted in the file
-            writeLineToFile(pathDiscord, "" + twitchId); // Add a link to the twitch accoun to the discord file, mostly just used to see if account is linked
+            writeLineToFile(pathDiscord, "" + twitchId); // Add a link to the twitch account to the discord file, mostly just used to see if account is linked
             writeLineToFile(pathTwitch , discordId); // Add a backwards link for commands that will use twitch users info to do things like change roles on the discord account
             return true;
         }
@@ -243,19 +237,19 @@ function verify(twitchId, code) {
 }
 
 // File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verified)
-function isVerifiedDiscord(discordId) { return readFile(__dirname + "/verify/discord/" + discordId + ".txt").length > 1; }
+function isVerifiedDiscord(discordId) { return readFile(__dirname + "\\verify\\discord\\" + discordId + ".txt").length > 1; }
 
 // File structure: name: twitch-id line1: discord-id (if verified)
-function isVerifiedTwitch(twitchId  ) { return readFile(__dirname + "/verify/twitch/" + twitchId   + ".txt").length > 0; }
+function isVerifiedTwitch(twitchId  ) { return readFile(__dirname + "\\verify\\twitch\\" + twitchId   + ".txt").length > 0; }
 
 function syncTwitchDiscord(userState) {
-    const discordId = parseInt("" + readFile(__dirname + "/verify/twitch/" + userState['id'] + ".txt")[0]);
+    const discordId = parseInt("" + readFile(__dirname + "\\verify\\twitch\\" + userState['id'] + ".txt")[0]);
 
     clientDiscord.guilds.cache.forEach(guild => {
         if (contains(discordAllowedGuilds, "" + guild.id)) {
             guild.members.cache.forEach(member => {
                 if (discordId == member.id) {
-                    // Use twitch's userState to find all the roles it should give
+                    // TODO: Use twitch's userState to find all the roles it should give
                 }
             });
         }
@@ -350,7 +344,7 @@ const clientTwitch = new tmi.Client({
         username: process.env.TWITCHNAME,
         password: "oauth:" + process.env.TWITCH
     },
-    channels: ["#" + process.env.TWITCHCHANNEL]
+    channels: ["#" + twitchChannel]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
@@ -371,10 +365,10 @@ function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
 
 function getUserTypeTwitch(userState) {
     if (userState.badges['broadcaster']) { return BROADCASTER; }
-    if (userState.mod                  ) { return MODERATOR;   }
-    if (userState.badges['vip']        ) { return VIP;         }
-    if (userState.subscriber           ) { return SUBSCRIBER;  }
-    if (userState.badges['premium']    ) { return PRIME;  }
+    if (userState.mod                  ) { return MODERATOR  ; }
+    if (userState.badges['vip']        ) { return VIP        ; }
+    if (userState.subscriber           ) { return SUBSCRIBER ; }
+    if (userState.badges['premium']    ) { return PRIME      ; }
     logWarning("No role determined from:");
     logData(userState.badges);
     return VIEWER;
@@ -395,10 +389,7 @@ const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIn
 let discord = 0;
 
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
-
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
-
-let discord = 0;
 
 async function startDiscord() {
     ready = false;
@@ -408,7 +399,6 @@ async function startDiscord() {
 }
 
 function stopDiscord() { clientDiscord.destroy(); tasksBusy.discord = false; }
-
 function sendChannelMessageDiscord(channel, title, message) { if (channel != null) { sendChannelEmbedDiscord(channel, title, message, color, []); } else { logInfo(title + ": " + message); } }
 function sendDMDiscord(user, title, message) { user.send(message); }
 
@@ -418,7 +408,7 @@ function sendChannelEmbedDiscord(channel, title, description, col, fields) {
     channel.send({ embeds: [embed] });
 }
 
-function isAdminDiscord(member) { return member.roles.cache.some((role) => { return contains(adminRoles, role.name); }); }
+function isAdminDiscord(member) { return member.roles.cache.some(role => { return contains(adminRoles, role.name); }); }
 
 ///////////////////
 // Control panel //
