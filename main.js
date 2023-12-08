@@ -10,11 +10,15 @@ const color = "#ff8888"
 
 // Commands
 const prefix = "!";
-let adminRoles = ["Admin", "Dev"];
+const adminRoles = ["Admin", "Dev"];
 
 ////////////
 // Memory //
 ////////////
+
+let runMessages = false;
+let automatedMessageManager = 0;
+let automatedMessages = [];
 
 // settings file
 require('dotenv').config();
@@ -27,6 +31,8 @@ let ready = false; // Used by bots during its start to wait till its ready
 
 const discordAllowedGuilds = ("" + process.env.DISCORDGUILDS).split(",");
 const discordAllowedChannels = ("" + process.env.DISCORDCHANNELS).split(",");
+
+const twitchChannel = process.env.TWITCHCHANNEL;
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -95,6 +101,7 @@ async function start() {
 async function stop() {
     if (!closing) {
         closing = true;
+        await stopAutomatedMessagesManager();
         if (tasksBusy.discord) { await stopDiscord(); }
         if (tasksBusy.twitch) { await stopTwitch(); }
     }
@@ -124,8 +131,10 @@ function parseDiscord(message) {
                 ]);
                 break;
             case "stop":
-                if (isAdminDiscord(member)) { sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
-                else { sendChannelEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", "#ff5555", []); }
+                if (isAdminDiscord(member)) {
+                    sendChannelMessageDiscord(message.channel, "Command successful", "Stopping the bots");
+                    stopConsole().catch();
+                } else { sendChannelEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", "#ff5555", []); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
@@ -168,7 +177,7 @@ function parseTwitch(channel, userState, message) {
                 if (isVerifiedTwitch(userId)) {
                     syncTwitchDiscord(userState);
                     sendMessageTwitch(channel, "Command not implemented yet! come back later to manually sync your subs with your discord account");
-                } else { sendMessageTwitch(channel, "You can only use this command if ypu have linked your discord account!"); }
+                } else { sendMessageTwitch(channel, "You can only use this command if you have linked your discord account!"); }
                 break;
             case "verify":
                 if (params.length > 0) {
@@ -176,7 +185,7 @@ function parseTwitch(channel, userState, message) {
                         if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`); }
                         else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
                     } else { sendMessageTwitch(channel, "You have already been verified!"); }
-                } else { sendMessageTwitch(channel, "Need a verification-code as argument, if oyu don't have this yet you can get it from the discord bot using the verify command there!"); }
+                } else { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
@@ -195,6 +204,9 @@ async function parseConsole(url) {
     const command = params[2].toLowerCase();
     params.splice(0, 3);
     switch (command) {
+        case "test":
+            reloadTwitchTimedMessages();
+            break;
         case "stop":
             await stopConsole();
             break;
@@ -248,6 +260,62 @@ function syncTwitchDiscord(userState) {
             });
         }
     });
+}
+
+
+
+
+async function reloadTwitchTimedMessages() {
+    let messages = [];
+    const config = readFile(__dirname + "\\automated\\messages\\config.txt");
+    for (let i = 0; i < config.length; i++) {
+        const line = config[i].split(" ");
+        switch (line[0]) {
+            case "message":
+                logWarning("NOT IMPLEMENTED");
+                break;
+            case "sequence":
+                logWarning("NOT IMPLEMENTED");
+                break;
+            case "list":
+                logWarning("NOT IMPLEMENTED");
+                break;
+            default:
+                logError(`Couldnt interpret automated message type from following config line (${i}): ` + line);
+                break;
+        }
+    }
+    logData(config);
+
+
+
+
+
+
+    // TODO: read out messages from the file system
+
+    await stopAutomatedMessagesManager();
+    automatedMessages = messages; // Replace the messages list
+
+    return; // TODO: TMP
+
+    automatedMessageManager = automatedMessagesManager(); // Start new messages manager
+}
+
+async function stopAutomatedMessagesManager() {
+    if (automatedMessageManager) {
+        runMessages = false;
+        await automatedMessageManager;
+    }
+    automatedMessageManager = 0;
+}
+
+async function automatedMessagesManager() {
+    while (runMessages) {
+        await sleep(1);
+
+        // TODO: check timer for messages
+    }
 }
 
 ////////////////////
