@@ -332,6 +332,7 @@ async function automatedMessagesManager() {
 ////////////////////
 
 // Roles
+const DEVELOPER   = "Dev"
 const BROADCASTER = "Broadcaster";
 const ADMIN       = "Admin";
 const MODERATOR   = "Moderator";
@@ -348,6 +349,7 @@ const adminLevels = [
     MODERATOR,
     ADMIN,
     BROADCASTER,
+    DEVELOPER
 ];
 
 // Twitch
@@ -380,6 +382,7 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
 
 function getUserTypeTwitch(userState) {
+    if (equals(userState.name, process.env.DEVNAME)) { return DEVELOPER; }
     if (userState.badges['broadcaster']) { return BROADCASTER; }
     if (userState.mod                  ) { return MODERATOR  ; }
     if (userState.badges['vip']        ) { return VIP        ; }
