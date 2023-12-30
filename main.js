@@ -49,7 +49,7 @@ function parseCustomCommand(command) {
         const parts = filesInCommandFolder[i].split(".");
         if (parts.length > 1) {
             for (let j = 0; j < commandFileTypes.length; j++) {
-                if (equals(parts[parts.length - 1].toLowerCase(), commandFileTypes[i].toLowerCase())) {
+                if (equals(parts[parts.length - 1].toLowerCase(), ("" + commandFileTypes[j]).toLowerCase())) {
                     commandFiles.push(filesInCommandFolder[i]);
                     break;
                 }
@@ -138,7 +138,7 @@ function parseDiscord(message) {
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
-                if (cmdResult.length) { sendChannelMessageDiscord(message.channel, "Custom commands?", cmdResult); }
+                if (cmdResult.length) { sendEmbedDiscord(message.channel, "Custom commands?", cmdResult); }
                 else {
                     sendEmbedDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
                     logWarning("Discord command not found! (" + command + ")");
@@ -167,6 +167,23 @@ function parseTwitch(channel, userState, message) {
             case "help":
                 sendMessageTwitch(channel, `Commands:\n${prefix}verify\n${prefix}sync`);
                 break;
+            case "timer":
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
+                    if (params.length > 1) {
+                        const name = params[0];
+                        const number = parseInt(params[1]);
+                        if (!isNaN(number)) {
+                            sleep(60 * Math.min(number, 0)).then(_ => { sendMessageTwitch(channel, `Timer '${name}' ended`); });
+                        } else { sendMessageTwitch(channel, `Second argument is not a number!`);}
+                    } else { sendMessageTwitch(channel, `Not enough arguments given!`); }
+                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`); }
+                break;
+            case "addquote":
+                if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
+                    let quote = "\n" + concat(params, " ") + " - " + userState.username;
+                    fs.appendFile(__dirname + "\\data\\commands\\quote.rand", quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(__dirname + "\\data\\commands\\quote.rand").length}`); } });
+                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
+                break;
             case "sync":
                 if (isVerifiedTwitch(userId)) {
                      if (syncTwitchDiscord(userState)) { sendMessageTwitch(channel, "Synced roles!"); }
@@ -184,10 +201,6 @@ function parseTwitch(channel, userState, message) {
             default:
                 const cmdResult = parseCustomCommand(command);
                 if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
-                else {
-                    sendMessageTwitch(channel, `Twitch command \'${command}\' not found!`);
-                    logData(params);
-                }
                 break;
         }
     }
@@ -540,7 +553,7 @@ function equals(first, second) {
 
 function concat(list, separator = "") {
     let result = "";
-    for (let i = 0; i < list.length; i++) { result += list[i] + (i < 1 ? "" : separator); }
+    for (let i = 0; i < list.length; i++) { result += (i < 1 ? "" : separator) + list[i]; }
     return result;
 }
 
