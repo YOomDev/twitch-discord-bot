@@ -558,11 +558,13 @@ function concat(list, separator = "") {
     return result;
 }
 
+function getTimeString() { return (new Date()).toLocaleTimeString(); }
+
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (array[i] == value) { return true; } } return false; }
 
-function logError(err)   { console.error("ERROR:\t", err ); }
-function logWarning(err) { console.error("Warning:", err ); }
-function logInfo(info)   { console.log  ("Info:\t" , info); }
+function logError(err)   { console.error(`[${getTimeString()}] ERROR:\t`, err ); }
+function logWarning(err) { console.error(`[${getTimeString()}] Warning:`, err ); }
+function logInfo(info)   { console.log  (`[${getTimeString()}] Info:\t` , info); }
 function logData(data)   { console.log  (            data); }
 async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.min(seconds, 0) * 1000)); }
 
