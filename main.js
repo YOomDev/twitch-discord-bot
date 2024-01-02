@@ -163,6 +163,7 @@ function parseTwitch(channel, userState, message) {
                 logInfo("Twitch Debug-info:");
                 logInfo(channel + ": " + message);
                 logData(userState);
+                logData(getUserTypeTwitch(userState));
                 break;
             case "help":
                 sendMessageTwitch(channel, `Commands:\n${prefix}verify\n${prefix}sync`);
@@ -173,7 +174,7 @@ function parseTwitch(channel, userState, message) {
                         const name = params[0];
                         const number = parseInt(params[1]);
                         if (!isNaN(number)) {
-                            sleep(60 * Math.min(number, 0)).then(_ => { sendMessageTwitch(channel, `Timer '${name}' ended`); });
+                            sleep(60 * number).then(_ => { sendMessageTwitch(channel, `Timer '${name}' ended`); playAudio(name + ".mp3").catch(err => logError(err)) });
                         } else { sendMessageTwitch(channel, `Second argument is not a number!`);}
                     } else { sendMessageTwitch(channel, `Not enough arguments given!`); }
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`); }
@@ -395,7 +396,7 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
 
 function getUserTypeTwitch(userState) {
-    if (equals(userState.name, process.env.DEVNAME)) { return DEVELOPER; }
+    if (equals(userState.username, process.env.DEVNAME)) { return DEVELOPER; }
     if (userState.badges['broadcaster']) { return BROADCASTER; }
     if (userState.mod                  ) { return MODERATOR  ; }
     if (userState.badges['vip']        ) { return VIP        ; }
@@ -563,7 +564,7 @@ function logError(err)   { console.error("ERROR:\t", err ); }
 function logWarning(err) { console.error("Warning:", err ); }
 function logInfo(info)   { console.log  ("Info:\t" , info); }
 function logData(data)   { console.log  (            data); }
-async function sleep(seconds) { return new Promise((resolve) => setTimeout(resolve, seconds * 1000)); }
+async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.min(seconds, 0) * 1000)); }
 
 const fs = require('fs');
 
