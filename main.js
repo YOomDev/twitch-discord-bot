@@ -19,7 +19,7 @@ let automatedMessageManager = 0;
 let automatedMessages = [];
 
 // Queue's and busy booleans for all different parts
-let tasksBusy  = { discord: false, twitch: false, console: false };
+let tasksBusy  = { discord: false, twitch: false };
 let ready = false; // Used by bots during its start to wait till its ready
 let closing = false;
 
@@ -80,10 +80,10 @@ function parseCustomCommand(command) {
 // BOT //
 /////////
 
-function isBusy() { return tasksBusy.discord || tasksBusy.twitch || tasksBusy.console; }
+function isBusy() { return tasksBusy.discord || tasksBusy.twitch; }
 
 async function start() {
-    logInfo("Console started, initializing bots...");
+    logInfo("Initializing bots...");
     await startTwitch();
     await startDiscord();
     logInfo("Bots initialized successfully!");
@@ -495,7 +495,7 @@ async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve
 
 function getFilenamesFromFolder(path) {
     return fs.readdirSync(path, function (err, files) {
-        if (err) { console.log('Unable to scan directory: ' + err); return []; }
+        if (err) { logError('Unable to scan directory: ' + err); return []; }
         return files;
     });
 }
