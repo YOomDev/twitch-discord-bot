@@ -21,6 +21,7 @@ let automatedMessages = [];
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false, console: false };
 let ready = false; // Used by bots during its start to wait till its ready
+let closing = false;
 
 const fs = require('fs');
 
@@ -90,6 +91,14 @@ async function start() {
     logInfo("Program stopped!");
 }
 
+async function stop() {
+    if (!closing) {
+        closing = true;
+        if (tasksBusy.discord) { await stopDiscord(); }
+        if (tasksBusy.twitch) { await stopTwitch(); }
+    }
+}
+
 function parseDiscord(message) {
     if (message.content.startsWith(prefix)) { // Check if the message is a command
         // Grab needed info for the commands
@@ -111,10 +120,6 @@ function parseDiscord(message) {
                     [`${prefix}help`, "Displays the help page", false],
                     [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false]
                 ]);
-                break;
-            case "stop":
-                if (isAdminDiscord(member)) { sendEmbedDiscord(message.channel, "Command successful", "Stopping the bots"); stopConsole().catch(); }
-                else { sendEmbedDiscord(message.channel, "No permission", "You do not have the required role to use this command!", color_error); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
@@ -185,6 +190,9 @@ function parseTwitch(channel, userState, message) {
                         else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
                     } else { sendMessageTwitch(channel, "You have already been verified!"); }
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); }
+                break;
+            case "stop":
+                stop();
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
