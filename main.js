@@ -18,21 +18,16 @@ let runMessages = false;
 let automatedMessageManager = 0;
 let automatedMessages = [];
 
-// settings file
-require('dotenv').config();
-
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false, console: false };
-let program = null;
-let closing = false; // Tells the program thread that closing has already been initiated so it cant be called twice at the same time
 let ready = false; // Used by bots during its start to wait till its ready
 
-const discordAllowedGuilds = ("" + process.env.DISCORDGUILDS).split(",");
-const discordAllowedChannels = ("" + process.env.DISCORDCHANNELS).split(",");
+const fs = require('fs');
 
-const audioFormats = [".mp3", ".ogg", ".wav"];
+const discordAllowedGuilds = readFile(__dirname + "\\settings\\discordGuilds.settings");
+const discordAllowedChannels = readFile(__dirname + "\\settings\\discordChannels.settings");
 
-const twitchChannel = process.env.TWITCHCHANNEL;
+const twitchChannel = readFile(__dirname + "\\settings\\twitchToken.settings")[0];
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -93,14 +88,6 @@ async function start() {
     logInfo("Bots initialized successfully!");
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
     logInfo("Program stopped!");
-}
-
-async function stop() {
-    if (!closing) {
-        closing = true;
-        if (tasksBusy.discord) { await stopDiscord(); }
-        if (tasksBusy.twitch) { await stopTwitch(); }
-    }
 }
 
 function parseDiscord(message) {
@@ -204,34 +191,6 @@ function parseTwitch(channel, userState, message) {
                 if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
                 break;
         }
-    }
-}
-
-async function parseConsole(url) {
-    const params = url.split("/");
-    const command = params[2].toLowerCase();
-    params.splice(0, 3);
-    switch (command) {
-        case "test":
-            reloadTwitchTimedMessages();
-            break;
-        case "stop":
-            await stopConsole();
-            break;
-        case "audio":
-            if (equals("clear", params[0])) { audioQueue = []; logInfo("Console cleared the audio queue!") }
-            else if (equals("stop", params[0])) { if (!audioPlayerDiscord.stop()) { logWarning("Console tried to stop the audio player while it was not playing anything!"); } }
-            else if (equals("play", params[0]) && params.length > 1) {
-                params.splice(0, 1);
-                const name = concatenateList(params, " ");
-                logInfo(`Console added audio to queue: '${name.substring(1, name.length)}'`);
-                if (audioPlayerDiscord.state.status === AudioPlayerStatus.Idle) { playAudio(name.substring(1, name.length)).catch(_ => {}); }
-                else { await playAudio(name.substring(1, name.length)); }
-            } else { logWarning(`Invalid console command received! (${command + concatenateList(params, "\/", "")})`); }
-            break;
-        default:
-            logWarning(`Unknown console command: ${command}`);
-            break;
     }
 }
 
@@ -372,10 +331,10 @@ const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
     identity: {
-        username: process.env.TWITCHNAME,
-        password: "oauth:" + process.env.TWITCH
+        username: readFile(__dirname + "\\settings\\twitchUserInfo.settings")[1],
+        password: "oauth:" + readFile(__dirname + "\\settings\\twitchToken.settings")[0]
     },
-    channels: ["#" + twitchChannel]
+    channels: ["#" + readFile(__dirname + "\\settings\\twitchUserInfo.settings")[0]]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
@@ -396,7 +355,7 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
 
 function getUserTypeTwitch(userState) {
-    if (equals(userState.username, process.env.DEVNAME)) { return DEVELOPER; }
+    if (equals(userState.username, readFile(__dirname + "\\settings\\twitchUserInfo.settings")[2])) { return DEVELOPER; }
     if (userState.badges['broadcaster']) { return BROADCASTER; }
     if (userState.mod                  ) { return MODERATOR  ; }
     if (userState.badges['vip']        ) { return VIP        ; }
@@ -446,23 +405,8 @@ async function playAudio(path = "") {
     }
 }
 
-function createAudioButtons() {
-    let result = "";
-    const files = listFilesInFolder(__dirname + "/sounds/");
-    if (files.length < 1) { return "No audio files in sounds directory."; }
-    for (let i = 0; i < files.length; i++) {
-        for (let j = 0; j < audioFormats.length; j++) {
-            if (files[i].endsWith(audioFormats[j])) { // Check if file is audio file
-                result += `<button onclick=\"command(\'audio/play/${files[i].replaceAll(" ", "\/")}\')\" type=\"button\">${files[i]}</button>`;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
 clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
-    if (oldState.member.roles.cache.some(role => { return equals(role.name, process.env.STREAMER_ROLE_NAME); })) {
+    if (oldState.member.roles.cache.some(role => { return equals(role.name, readFile(__dirname + "\\settings\\discord.settings")[0]); })) {
         if (newState.channel !== null) {
             logInfo(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
 
@@ -497,7 +441,7 @@ let discord = 0;
 async function startDiscord() {
     ready = false;
     tasksBusy.discord = true;
-    discord = clientDiscord.login(process.env.DISCORD).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
+    discord = clientDiscord.login(readFile(__dirname + "\\settings\\discordToken.settings")[0]).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
     ready = false;
 }
@@ -511,33 +455,6 @@ function sendEmbedDiscord(channel, title, description, col = color, fields = [])
 }
 
 function isAdminDiscord(member) { return member.roles.cache.some((role) => { return contains(adminRoles, role.name); }); }
-
-///////////////////
-// Control panel //
-///////////////////
-
-// Console
-const http    = require('http');
-const express = require('express');
-const app     = express();
-
-// Set up express
-app.set('view engine', 'ejs');
-app.use(express.static(__dirname + '/public'));
-
-// Set command interface through page get
-app.get("/cmd/*", (req, res) => {
-    if (tasksBusy.console) { parseConsole(req.url).catch((err) => { logError(err); }).then(_ => { res.redirect("/"); }); }
-});
-
-// Set main page get implementation
-app.get("\/"     , (req, res) => { res.render("index", { status: (program === null ? "<button onclick=\"command('start')\" type=\"button\">Start</button>" : ""), audioButtons: createAudioButtons(), audioQueued: concatenateList(audioQueue, "<li>", "<\/li>") }); });
-
-// Start the server
-const server = http.createServer(app);
-server.listen(parseInt(process.env.CONSOLEPORT, 10), _ => { tasksBusy.console = true; program = start(); });
-
-async function stopConsole() { server.close((err) => { logError(err); }); logInfo("Shutting down..."); if (program !== null) { tasksBusy.console = false; await stop(); await program; } process.exit(); }
 
 /////////////////
 // BOT backend //
@@ -567,8 +484,6 @@ function logWarning(err) { console.error(`[${getTimeString()}] Warning:`, err );
 function logInfo(info)   { console.log  (`[${getTimeString()}] Info:\t` , info); }
 function logData(data)   { console.log  (            data); }
 async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.min(seconds, 0) * 1000)); }
-
-const fs = require('fs');
 
 function getFilenamesFromFolder(path) {
     return fs.readdirSync(path, function (err, files) {
@@ -612,3 +527,9 @@ function listFilesInFolder(path) {
     for (let i = 0; i < files.length; i++) { result.push("" + files[i]); }
     return result;
 }
+
+///////////////////
+// Program start //
+///////////////////
+
+start().catch(err => { logError(err); });

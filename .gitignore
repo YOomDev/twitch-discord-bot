@@ -1,7 +1,7 @@
 node_modules/
 .idea/
 package-lock.json
-.env
+settings/*.settings
 verify/discord/*.txt
 verify/twitch/*.txt
 sounds/*.mp3
