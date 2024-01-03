@@ -192,7 +192,9 @@ function parseTwitch(channel, userState, message) {
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
             case "stop":
-                stop();
+                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
+                    stop().catch(err => { logError(err); });
+                }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
