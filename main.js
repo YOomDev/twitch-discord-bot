@@ -158,7 +158,7 @@ function parseTwitch(channel, userState, message) {
         // Parse
         switch (command) {
             case "automsg":
-                reloadTwitchTimedMessages().catch(err => { logError(err); });
+                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
                 break;
             case "debug":
                 logInfo("Twitch Debug-info:");
@@ -201,10 +201,7 @@ function parseTwitch(channel, userState, message) {
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); }
                 break;
             case "stop":
-                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
-                    stop().catch(err => { logError(err); });
-                    logInfo("Requested bot stop");
-                }
+                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) { stop().catch(err => { logError(err); }); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
