@@ -116,9 +116,6 @@ function parseDiscord(message) {
         if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
         switch (command) {
-            case "test":
-                reloadTwitchTimedMessages().catch(err => { logError(err); });
-                break;
             case "debug":
                 logInfo("Discord Debug-info:");
                 logData(message);
@@ -160,6 +157,9 @@ function parseTwitch(channel, userState, message) {
 
         // Parse
         switch (command) {
+            case "automsg":
+                reloadTwitchTimedMessages().catch(err => { logError(err); });
+                break;
             case "debug":
                 logInfo("Twitch Debug-info:");
                 logInfo(channel + ": " + message);
