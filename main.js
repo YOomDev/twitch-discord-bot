@@ -196,6 +196,7 @@ function parseTwitch(channel, userState, message) {
             case "stop":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
                     stop().catch(err => { logError(err); });
+                    logInfo("Requested bot stop");
                 }
                 break;
             default:
