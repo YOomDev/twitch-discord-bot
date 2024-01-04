@@ -15,6 +15,7 @@ const adminRoles = ["Admin", "Dev"];
 ////////////
 
 let runMessages = false;
+let currentAutomatedMessage = 0;
 let automatedMessageManager = 0;
 let automatedMessages = [];
 
@@ -27,8 +28,6 @@ const fs = require('fs');
 
 const discordAllowedGuilds = readFile(__dirname + "\\settings\\discordGuilds.settings");
 const discordAllowedChannels = readFile(__dirname + "\\settings\\discordChannels.settings");
-
-const twitchChannel = readFile(__dirname + "\\settings\\twitchToken.settings")[0];
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -104,13 +103,16 @@ function parseDiscord(message) {
         // Grab needed info for the commands
         const params = message.content.substring(prefix.length, message.content.length).split(" ");
         const command = params[0].toLowerCase();
-        const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
+        // const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
 
         // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
         if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
         switch (command) {
+            case "test":
+                reloadTwitchTimedMessages().catch(err => { logError(err); });
+                break;
             case "debug":
                 logInfo("Discord Debug-info:");
                 logData(message);
@@ -158,7 +160,7 @@ function parseTwitch(channel, userState, message) {
                 logData(getUserTypeTwitch(userState));
                 break;
             case "help":
-                sendMessageTwitch(channel, `Commands:\n${prefix}verify\n${prefix}sync`);
+                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote`);
                 break;
             case "timer":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
@@ -254,9 +256,6 @@ function syncTwitchDiscord(userState) {
     return false;
 }
 
-
-
-
 async function reloadTwitchTimedMessages() {
     let messages = [];
     const config = readFile(__dirname + "\\automated\\messages\\config.txt");
@@ -264,49 +263,40 @@ async function reloadTwitchTimedMessages() {
         const line = config[i].split(" ");
         switch (line[0]) {
             case "message":
-                logWarning("NOT IMPLEMENTED");
-                break;
             case "sequence":
-                logWarning("NOT IMPLEMENTED");
-                break;
             case "list":
-                logWarning("NOT IMPLEMENTED");
+                if (line.length > 1) {
+                    messages.push({ type: line[0], file: concat(line, " ", 1) });
+                    break;
+                }
+                logError(`Couldnt interpret automated message from config line ${i}: ` + line);
                 break;
             default:
-                logError(`Couldnt interpret automated message type from following config line (${i}): ` + line);
+                logError(`Couldnt interpret automated message from config line ${i}: ` + line);
                 break;
         }
     }
     logData(config);
 
-
-
-
-
-
-    // TODO: read out messages from the file system
-
-    await stopAutomatedMessagesManager();
-    automatedMessages = messages; // Replace the messages list
-
     return; // TODO: TMP
 
+    runMessages = false;
+    await stopAutomatedMessagesManager();
+    automatedMessages = messages; // Replace the messages list
     automatedMessageManager = automatedMessagesManager(); // Start new messages manager
 }
 
 async function stopAutomatedMessagesManager() {
-    if (automatedMessageManager) {
-        runMessages = false;
-        await automatedMessageManager;
-    }
+    runMessages = false;
+    if (automatedMessageManager) { await automatedMessageManager; }
     automatedMessageManager = 0;
+    currentAutomatedMessage = 0;
 }
 
 async function automatedMessagesManager() {
     while (runMessages) {
-        await sleep(1);
-
-        // TODO: check timer for messages
+        await sleep(2);
+        // TODO
     }
 }
 
@@ -444,7 +434,6 @@ clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
     }
 })
 
-
 // Starting creates a promise that contains the current discord client, it is stored here to make sure all the different clients can work asynchronously
 let discord = 0;
 
@@ -479,9 +468,9 @@ function equals(first, second) {
     }
 }
 
-function concat(list, separator = "") {
+function concat(list, separator = "", start = 0) {
     let result = "";
-    for (let i = 0; i < list.length; i++) { result += (i < 1 ? "" : separator) + list[i]; }
+    for (let i = start; i < list.length; i++) { result += (i < 1 ? "" : separator) + list[i]; }
     return result;
 }
 
