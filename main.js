@@ -30,10 +30,10 @@ let closing = false;
 
 const fs = require('fs');
 
-const discordAllowedGuilds = readFile(__dirname + "\\settings\\discordGuilds.settings");
-const discordAllowedChannels = readFile(__dirname + "\\settings\\discordChannels.settings");
+const discordAllowedGuilds = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
+const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
 
-const twitchChannel = "#" + readFile(__dirname + "\\settings\\twitchUserInfo.settings")[0];
+const twitchChannel = `#${readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0]}`;
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -43,14 +43,14 @@ const commandFileTypes = ["rand"];
 /////////////////////
 
 function parseCustomCommand(command) {
-    const path = __dirname + "\\data\\commands";
+    const path = `${__dirname}\\data\\commands`;
     const filesInCommandFolder = getFilenamesFromFolder(path);
     const commandFiles = [];
     for (let i = 0; i < filesInCommandFolder.length; i++) {
         const parts = filesInCommandFolder[i].split(".");
         if (parts.length > 1) {
             for (let j = 0; j < commandFileTypes.length; j++) {
-                if (equals(parts[parts.length - 1].toLowerCase(), ("" + commandFileTypes[j]).toLowerCase())) {
+                if (equals(parts[parts.length - 1].toLowerCase(), (`${commandFileTypes[j]}`).toLowerCase())) {
                     commandFiles.push(filesInCommandFolder[i]);
                     break;
                 }
@@ -68,11 +68,11 @@ function parseCustomCommand(command) {
             wasCustomCommand = true;
             switch(type) {
                 case "rand":
-                    const options = readFile(path + "\\" + commandFiles[i]);
+                    const options = readFile(`${path}\\${commandFiles[i]}`);
                     result = options.length < 1 ? "ERROR" : options[randomInt(options.length)];
                     break;
                 default:
-                    logError(`Custom command type \'${"." + type}\' has not been implemented yet for the custom command parser`);
+                    logError(`Custom command type \'.${type}\' has not been implemented yet for the custom command parser`);
                     break;
             }
             break;
@@ -138,7 +138,7 @@ function parseDiscord(message) {
                 if (cmdResult.length) { sendEmbedDiscord(message.channel, "Custom commands?", cmdResult); }
                 else {
                     sendEmbedDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
-                    logWarning("Discord command not found! (" + command + ")");
+                    logWarning(`Discord command not found! (${command})`);
                 }
                 break;
         }
@@ -162,7 +162,7 @@ function parseTwitch(channel, userState, message) {
                 break;
             case "debug":
                 logInfo("Twitch Debug-info:");
-                logInfo(channel + ": " + message);
+                logInfo(`${channel}: ${message}`);
                 logData(userState);
                 logData(getUserTypeTwitch(userState));
                 break;
@@ -175,15 +175,15 @@ function parseTwitch(channel, userState, message) {
                         const name = params[0];
                         const number = parseInt(params[1]);
                         if (!isNaN(number)) {
-                            sleep(60 * number).then(_ => { sendMessageTwitch(channel, `Timer '${name}' ended`); playAudio(name + ".mp3").catch(err => logError(err)) });
+                            sleep(60 * number).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
                         } else { sendMessageTwitch(channel, `Second argument is not a number!`);}
                     } else { sendMessageTwitch(channel, `Not enough arguments given!`); }
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`); }
                 break;
             case "addquote":
                 if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
-                    let quote = "\n" + concat(params, " ") + " - " + userState.username;
-                    fs.appendFile(__dirname + "\\data\\commands\\quote.rand", quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(__dirname + "\\data\\commands\\quote.rand").length}`); } });
+                    let quote = `\n${concat(params, " ")} - ${userState.username}`;
+                    fs.appendFile(`${__dirname}\\data\\commands\\quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${__dirname}\\data\\commands\\quote.rand`).length}`); } });
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
                 break;
             case "sync":
@@ -212,8 +212,8 @@ function parseTwitch(channel, userState, message) {
 }
 
 function createVerify(discordId) {
-    const code = "" + discordId + "-" + Date.now();
-    const path = __dirname + "\\verify\\discord\\" + discordId + ".txt";
+    const code = `${discordId}-${Date.now()}`;
+    const path = `${__dirname}\\verify\\discord\\${discordId}.txt`;
     if (sumLength(readFile(path))) { return ""; } // return empty if verify-code has already been requested
     writeLineToFile(path, code);
     return code;
@@ -223,13 +223,13 @@ function verify(twitchId, code) {
     if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual verification-code
 
     const discordId   = code.split("-")[0];
-    const pathDiscord = __dirname + "\\verify\\discord\\" + discordId + ".txt";
-    const pathTwitch  = __dirname + "\\verify\\twitch\\" + twitchId + ".txt";
+    const pathDiscord = `${__dirname}\\verify\\discord\\${discordId}.txt`;
+    const pathTwitch  = `${__dirname}\\verify\\twitch\\${twitchId}.txt`;
 
     const read = readFile(pathDiscord);
     if (read.length === 1) { // Check if there's a line used, due to how it formats, the first line is the code, and thus it can be checked to see if there was a code requested
         if (read[0] === code) { // Verify if code is the same as noted in the file
-            writeLineToFile(pathDiscord, "" + twitchId); // Add a link to the twitch account to the discord file, mostly just used to see if account is linked
+            writeLineToFile(pathDiscord, `${twitchId}`); // Add a link to the twitch account to the discord file, mostly just used to see if account is linked
             writeLineToFile(pathTwitch , discordId); // Add a backwards link for commands that will use twitch users info to do things like change roles on the discord account
             return true;
         }
@@ -238,16 +238,16 @@ function verify(twitchId, code) {
 }
 
 // File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verified)
-function isVerifiedDiscord(discordId) { return readFile(__dirname + "\\verify\\discord\\" + discordId + ".txt").length > 1; }
+function isVerifiedDiscord(discordId) { return readFile(`${__dirname}\\verify\\discord\\${discordId}.txt`).length > 1; }
 
 // File structure: name: twitch-id line1: discord-id (if verified)
-function isVerifiedTwitch(twitchId  ) { return readFile(__dirname + "\\verify\\twitch\\" + twitchId   + ".txt").length > 0; }
+function isVerifiedTwitch(twitchId  ) { return readFile(`${__dirname}\\verify\\twitch\\${twitchId}.txt`).length > 0; }
 
 function syncTwitchDiscord(userState) {
-    const discordId = parseInt("" + readFile(__dirname + "\\verify\\twitch\\" + userState['id'] + ".txt")[0]);
+    const discordId = parseInt(`${readFile(`${__dirname}\\verify\\twitch\\${userState['id']}.txt`)[0]}`);
     clientDiscord.guilds.cache.forEach(guild => {
        guild.members.cache.forEach(member => {
-           if (equals(discordId, "" + member.id)) {
+           if (equals(discordId, `${member.id}`)) {
                // TODO: use userState to give roles to the member
                if (userState.badges['broadcaster']) {  }
                if (userState.mod                  ) {  }
@@ -263,7 +263,7 @@ function syncTwitchDiscord(userState) {
 
 async function reloadTwitchTimedMessages() {
     let messages = [];
-    const config = readFile(__dirname + "\\automated\\messages\\config.txt");
+    const config = readFile(`${__dirname}\\automated\\messages\\config.txt`);
     for (let i = 0; i < config.length; i++) {
         let line = config[i].split(" ");
         switch (line[0]) {
@@ -274,10 +274,10 @@ async function reloadTwitchTimedMessages() {
                     messages.push({ type: line[0], file: concat(line, " ", 1) });
                     break;
                 }
-                logError(`Couldnt interpret automated message from config line ${i}: ` + line);
+                logError(`Couldnt interpret automated message from config line ${i}: ${line}`);
                 break;
             default:
-                logError(`Couldnt interpret automated message from config line ${i}: ` + line);
+                logError(`Couldnt interpret automated message from config line ${i}: ${line}`);
                 break;
         }
     }
@@ -308,7 +308,7 @@ async function automatedMessagesManager() {
 async function playAutomatedMessage() {
     if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
     const message = automatedMessages[currentAutomatedMessage];
-    let lines = readFile(__dirname + `\\automated\\messages\\${message.file}.txt`);
+    let lines = readFile(`${__dirname}\\automated\\messages\\${message.file}.txt`);
     switch (message.type) {
         case "message":
             sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
@@ -363,8 +363,8 @@ const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
     identity: {
-        username: readFile(__dirname + "\\settings\\twitchUserInfo.settings")[1],
-        password: "oauth:" + readFile(__dirname + "\\settings\\twitchToken.settings")[0]
+        username: readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[1],
+        password: `oauth:${readFile(`${__dirname}\\settings\\twitchToken.settings`)[0]}`
     },
     channels: [twitchChannel]
 });
@@ -387,7 +387,7 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
 
 function getUserTypeTwitch(userState) {
-    if (equals(userState.username, readFile(__dirname + "\\settings\\twitchUserInfo.settings")[2])) { return DEVELOPER; }
+    if (equals(userState.username, readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[2])) { return DEVELOPER; }
     if (userState.badges['broadcaster']) { return BROADCASTER; }
     if (userState.mod                  ) { return MODERATOR  ; }
     if (userState.badges['vip']        ) { return VIP        ; }
@@ -400,7 +400,7 @@ function getUserTypeTwitch(userState) {
 
 function getAdminLevelTwitch(type) {
     for (let i = 0; i < adminLevels.length; ++i) { if (type === adminLevels[i]) { return i; } }
-    logWarning("No admin level found for type: " + type);
+    logWarning(`No admin level found for type: ${type}`);
     return -1;
 }
 
@@ -410,13 +410,13 @@ function getAdminLevelTwitch(type) {
 
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
-clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: "chat for " + prefix + "help", type: ActivityType.Watching }], status: "" }); });
+clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: `chat for ${prefix}help`, type: ActivityType.Watching }], status: "" }); });
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
 
 const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
 
 const audioPlayerDiscord = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
-audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing '${error.resource.metadata.title}'. Full error: (${error.message})`); });
+audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing \'${error.resource.metadata.title}\'. Full error: (${error.message})`); });
 
 let audioConnection = null;
 let audioQueue = [];
@@ -429,7 +429,7 @@ async function playAudio(path = "") {
         audioPlaying = true;
         while (audioQueue.length > 0) {
             while (audioPlayerDiscord.state.status !== AudioPlayerStatus.Idle) { await sleep(0.5) }
-            const audio = createAudioResource(__dirname + "/sounds/" + audioQueue[0], { metadata: { title: audioQueue[0] } });
+            const audio = createAudioResource(`${__dirname}\\sounds\\${audioQueue[0]}`, { metadata: { title: audioQueue[0] } });
             audioQueue.splice(0, 1);
             audioPlayerDiscord.play(audio);
         }
@@ -438,7 +438,7 @@ async function playAudio(path = "") {
 }
 
 clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
-    if (oldState.member.roles.cache.some(role => { return equals(role.name, readFile(__dirname + "\\settings\\discord.settings")[0]); })) {
+    if (oldState.member.roles.cache.some(role => { return equals(role.name, readFile(`${__dirname}\\settings\\discord.settings`)[0]); })) {
         if (newState.channel !== null) {
             logInfo(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
 
@@ -472,7 +472,7 @@ let discord = 0;
 async function startDiscord() {
     ready = false;
     tasksBusy.discord = true;
-    discord = clientDiscord.login(readFile(__dirname + "\\settings\\discordToken.settings")[0]).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
+    discord = clientDiscord.login(readFile(`${__dirname}\\settings\\discordToken.settings`)[0]).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
     ready = false;
 }
@@ -518,7 +518,7 @@ async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve
 
 function getFilenamesFromFolder(path) {
     return fs.readdirSync(path, function (err, files) {
-        if (err) { logError('Unable to scan directory: ' + err); return []; }
+        if (err) { logError(`Unable to scan directory: ${err}`); return []; }
         return files;
     });
 }
@@ -543,7 +543,7 @@ function sumLength(array) {
     return total;
 }
 
-function writeLineToFile(path, line = "") { fs.appendFile(path, line + "\n", err => { logError(err); }); }
+function writeLineToFile(path, line = "") { fs.appendFile(path, `${line}\n`, err => { logError(err); }); }
 
 function concatenateList(list, prefix = "", suffix = "") {
     let result = "";
