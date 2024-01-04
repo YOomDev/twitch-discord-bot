@@ -341,7 +341,6 @@ async function playAutomatedMessage() {
 // Roles
 const DEVELOPER   = "Dev"
 const BROADCASTER = "Broadcaster";
-const ADMIN       = "Admin";
 const MODERATOR   = "Moderator";
 const VIP         = "VIP";
 const SUBSCRIBER  = "Subscriber";
@@ -354,7 +353,6 @@ const adminLevels = [
     SUBSCRIBER,
     VIP,
     MODERATOR,
-    ADMIN,
     BROADCASTER,
     DEVELOPER
 ];
