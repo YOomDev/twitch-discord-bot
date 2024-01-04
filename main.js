@@ -28,7 +28,7 @@ let tasksBusy  = { discord: false, twitch: false };
 let ready = false; // Used by bots during its start to wait till its ready
 let closing = false;
 
-const twitchChatters = [];
+let twitchChatters = [];
 
 const fs = require('fs');
 
@@ -149,7 +149,7 @@ function parseDiscord(message) {
 
 function parseTwitch(channel, userState, message) {
     lastTwitchMessageTime = (new Date()).getTime();
-    const userId = userState['id'];
+    const userId = userState['user-id'];
     if (message.startsWith(prefix)) { // Check if the message is a command
         // Gather the needed info for the command
         const params = message.substring(prefix.length, message.length).split(" ");
@@ -224,7 +224,7 @@ function parseTwitch(channel, userState, message) {
     } else if (!contains(twitchChatters, userId)) {
         twitchChatters.push(userId);
         const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
-        sendMessageTwitch(channel, lines[randomInt(lines.length)]);
+        sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState.username));
     }
 }
 
