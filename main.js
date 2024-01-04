@@ -14,10 +14,14 @@ const adminRoles = ["Admin", "Dev"];
 // Memory //
 ////////////
 
+// automated messages
 let runMessages = false;
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0;
 let automatedMessages = [];
+let lastTwitchMessageTime = 0;
+let automatedMessageMinutesBeforeInactive = 1.5;
+let minutesBetweenAutomatedMessages = 1;
 
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false };
@@ -28,6 +32,8 @@ const fs = require('fs');
 
 const discordAllowedGuilds = readFile(__dirname + "\\settings\\discordGuilds.settings");
 const discordAllowedChannels = readFile(__dirname + "\\settings\\discordChannels.settings");
+
+const twitchChannel = "#" + readFile(__dirname + "\\settings\\twitchUserInfo.settings")[0];
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -63,7 +69,7 @@ function parseCustomCommand(command) {
             switch(type) {
                 case "rand":
                     const options = readFile(path + "\\" + commandFiles[i]);
-                    result = options.length < 1 ? "ERROR" : options[random(options.length)];
+                    result = options.length < 1 ? "ERROR" : options[randomInt(options.length)];
                     break;
                 default:
                     logError(`Custom command type \'${"." + type}\' has not been implemented yet for the custom command parser`);
@@ -143,6 +149,7 @@ function parseDiscord(message) {
 }
 
 function parseTwitch(channel, userState, message) {
+    lastTwitchMessageTime = (new Date()).getTime();
     if (message.startsWith(prefix)) { // Check if the message is a command
         // Gather the needed info for the command
         const params = message.substring(prefix.length, message.length).split(" ");
@@ -261,7 +268,7 @@ async function reloadTwitchTimedMessages() {
     let messages = [];
     const config = readFile(__dirname + "\\automated\\messages\\config.txt");
     for (let i = 0; i < config.length; i++) {
-        const line = config[i].split(" ");
+        let line = config[i].split(" ");
         switch (line[0]) {
             case "message":
             case "sequence":
@@ -277,10 +284,6 @@ async function reloadTwitchTimedMessages() {
                 break;
         }
     }
-    logData(config);
-
-    return; // TODO: TMP
-
     runMessages = false;
     await stopAutomatedMessagesManager();
     automatedMessages = messages; // Replace the messages list
@@ -294,11 +297,44 @@ async function stopAutomatedMessagesManager() {
     currentAutomatedMessage = 0;
 }
 
+async function awaitAutomatedMessageActive() { while (!(lastTwitchMessageTime > (new Date()).getTime() - (automatedMessageMinutesBeforeInactive * 1000 * 60))) { await sleep(1); } }
+
 async function automatedMessagesManager() {
+    runMessages = true;
     while (runMessages) {
-        await sleep(2);
-        // TODO
+        await awaitAutomatedMessageActive();
+        await playAutomatedMessage();
+        await sleep(60 * minutesBetweenAutomatedMessages);
     }
+}
+
+async function playAutomatedMessage() {
+    if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
+    const message = automatedMessages[currentAutomatedMessage];
+    let lines = readFile(__dirname + `\\automated\\messages\\${message.file}.txt`);
+    switch (message.type) {
+        case "message":
+            sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
+            break;
+        case "sequence":
+            for (let i = 0; i < lines.length; i++) {
+                await awaitAutomatedMessageActive();
+                await sleep(60 * minutesBetweenAutomatedMessages);
+                sendMessageTwitch(twitchChannel, lines[i]);
+            }
+            break;
+        case "list":
+            for (let i = 0; i < lines.length; i++) {
+                await awaitAutomatedMessageActive();
+                await sleep(5);
+                sendMessageTwitch(twitchChannel, lines[i]);
+            }
+            break;
+        default:
+            logError(`Message type (${message.type}) not implemented. `);
+            break;
+    }
+    currentAutomatedMessage++;
 }
 
 ////////////////////
@@ -335,7 +371,7 @@ const clientTwitch = new tmi.Client({
         username: readFile(__dirname + "\\settings\\twitchUserInfo.settings")[1],
         password: "oauth:" + readFile(__dirname + "\\settings\\twitchToken.settings")[0]
     },
-    channels: ["#" + readFile(__dirname + "\\settings\\twitchUserInfo.settings")[0]]
+    channels: [twitchChannel]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
@@ -397,7 +433,7 @@ async function playAudio(path = "") {
     if (!audioPlaying && audioQueue.length > 0) {
         audioPlaying = true;
         while (audioQueue.length > 0) {
-            while (audioPlayerDiscord.state.status !== AudioPlayerStatus.Idle) { await sleep(0.25) }
+            while (audioPlayerDiscord.state.status !== AudioPlayerStatus.Idle) { await sleep(0.5) }
             const audio = createAudioResource(__dirname + "/sounds/" + audioQueue[0], { metadata: { title: audioQueue[0] } });
             audioQueue.splice(0, 1);
             audioPlayerDiscord.play(audio);
@@ -446,7 +482,7 @@ async function startDiscord() {
     ready = false;
 }
 
-async function stopDiscord() { clientDiscord.destroy(); await sleep(0.25); tasksBusy.discord = false; }
+async function stopDiscord() { clientDiscord.destroy(); await sleep(1); tasksBusy.discord = false; }
 
 function sendEmbedDiscord(channel, title, description, col = color, fields = []) {
     let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
@@ -460,7 +496,7 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 // BOT backend //
 /////////////////
 
-function random(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
+function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
 
 function equals(first, second) {
     switch (first) {
@@ -471,7 +507,7 @@ function equals(first, second) {
 
 function concat(list, separator = "", start = 0) {
     let result = "";
-    for (let i = start; i < list.length; i++) { result += (i < 1 ? "" : separator) + list[i]; }
+    for (let i = start; i < list.length; i++) { result += (i <= start ? "" : separator) + list[i]; }
     return result;
 }
 
@@ -482,8 +518,8 @@ function contains(array, value) { for (let i = 0; i < array.length; i++) { if (e
 function logError(err)   { console.error(`[${getTimeString()}] ERROR:\t`, err ); }
 function logWarning(err) { console.error(`[${getTimeString()}] Warning:`, err ); }
 function logInfo(info)   { console.log  (`[${getTimeString()}] Info:\t` , info); }
-function logData(data)   { console.log  (            data); }
-async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.min(seconds, 0) * 1000)); }
+function logData(data)   { console.log  (data); }
+async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.max(seconds, 0) * 1000)); }
 
 function getFilenamesFromFolder(path) {
     return fs.readdirSync(path, function (err, files) {
@@ -517,14 +553,6 @@ function writeLineToFile(path, line = "") { fs.appendFile(path, line + "\n", err
 function concatenateList(list, prefix = "", suffix = "") {
     let result = "";
     for (let i = 0; i < list.length; i++) { result += prefix + list[i] + suffix; }
-    return result;
-}
-
-function listFilesInFolder(path) {
-    if (!fs.statSync(path).isDirectory()) { return []; } // Return early if file is not a directory
-    let result = [];
-    const files = fs.readdirSync(path);
-    for (let i = 0; i < files.length; i++) { result.push("" + files[i]); }
     return result;
 }
 
