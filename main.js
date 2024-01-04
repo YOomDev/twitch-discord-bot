@@ -9,6 +9,8 @@ const color_error = "#FF3333";
 // Commands
 const prefix = "!";
 const adminRoles = ["Admin", "Dev"];
+const automatedMessageMinutesBeforeInactive = 1.5;
+const minutesBetweenAutomatedMessages = 1;
 
 ////////////
 // Memory //
@@ -20,13 +22,13 @@ let currentAutomatedMessage = 0;
 let automatedMessageManager = 0;
 let automatedMessages = [];
 let lastTwitchMessageTime = 0;
-let automatedMessageMinutesBeforeInactive = 1.5;
-let minutesBetweenAutomatedMessages = 1;
 
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false };
 let ready = false; // Used by bots during its start to wait till its ready
 let closing = false;
+
+const twitchChatters = [];
 
 const fs = require('fs');
 
@@ -147,24 +149,35 @@ function parseDiscord(message) {
 
 function parseTwitch(channel, userState, message) {
     lastTwitchMessageTime = (new Date()).getTime();
+    const userId = userState['id'];
     if (message.startsWith(prefix)) { // Check if the message is a command
         // Gather the needed info for the command
         const params = message.substring(prefix.length, message.length).split(" ");
         const command = params[0].toLowerCase();
-        const userId = userState['id'];
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
 
         // Parse
         switch (command) {
-            case "automsg":
-                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
-                break;
             case "debug":
                 logInfo("Twitch Debug-info:");
                 logInfo(`${channel}: ${message}`);
                 logData(userState);
                 logData(getUserTypeTwitch(userState));
+                break;
+            case "streamon":
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) { twitchChatters.splice(0, twitchChatters.length); } // Clear first time chats for this stream
+                break;
+            case "automsg":
+                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
+                    if (automatedMessageManager) {
+                        stopAutomatedMessagesManager().catch(err => { logError(err); });
+                        sendMessageTwitch(channel, "Automated messages have been turned off.");
+                    } else {
+                        reloadTwitchTimedMessages().catch(err => { logError(err); });
+                        sendMessageTwitch(channel, "Automated messages have been turned on!");
+                    }
+                }
                 break;
             case "help":
                 sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote`);
@@ -208,6 +221,10 @@ function parseTwitch(channel, userState, message) {
                 if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
                 break;
         }
+    } else if (!contains(twitchChatters, userId)) {
+        twitchChatters.push(userId);
+        const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
+        sendMessageTwitch(channel, lines[randomInt(lines.length)]);
     }
 }
 
@@ -384,7 +401,7 @@ async function startTwitch() {
 
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
-function sendMessageTwitch(channel, msg) { clientTwitch.say(channel, msg); }
+function sendMessageTwitch(channel, msg) { if (msg.length) { clientTwitch.say(channel, msg); } }
 
 function getUserTypeTwitch(userState) {
     if (equals(userState.username, readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[2])) { return DEVELOPER; }
