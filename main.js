@@ -96,7 +96,8 @@ function isBusy() { return tasksBusy.discord || tasksBusy.twitch; }
 async function start() {
     logInfo("Initializing bots...");
     await startTwitch();
-    loadFollowers().then(_ => { setInterval(loadFollowers, 24 * 60 * 60 * 1000); });
+    loadFollowers();
+    setInterval(loadFollowers, 24 * 60 * 60 * 1000);
     await startDiscord();
     logInfo("Bots initialized successfully!");
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
@@ -461,23 +462,27 @@ async function parseDataChunk() {
     let after = "";
     {
         const json = JSON.parse(tempData);
-        after = `${json.pagination.cursor}`;
+        after = "" + `${json.pagination.cursor}`;
         parsedData.push(json);
         if (!count) {
             count = json.total;
             let date = new Date();
-            const estimate = count / amountPerChunk * timePerChunk;
+            const estimate = count / amountPerChunk * (timePerChunk + 1);
             date.setTime(date.getTime() + 1000 * estimate);
             logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`)
         }
     }
-    if (after) {
+    logInfo(`Chunk loaded: ${parsedData.length}/${Math.ceil(count / amountPerChunk)}`);
+    logInfo(after.toString().length);
+    logInfo(after.toString());
+    if (after.toString().length > 10) {
         await sleep(timePerChunk);
         getFollowers(after, true);
     } else {
         followerData = [];
         for (let i = 0; i < parsedData.length; i++) {
-            for (let j = 0; j < Math.min(amountPerChunk, count - (40 * i)); j++) {
+            logInfo(`Parsed: ${i}/${Math.ceil(count / amountPerChunk)}`);
+            for (let j = 0; j < Math.min(amountPerChunk, count - (amountPerChunk * i)); j++) {
                 followerData.push({ id: parsedData[i].data[j].user_id, name: `${parsedData[i].data[j].user_name}`, time: parseTwitchTime(`${parsedData[i].data[j].followed_at}`) });
             }
         }
