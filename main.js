@@ -12,6 +12,10 @@ const adminRoles = ["Admin", "Dev"];
 const automatedMessageMinutesBeforeInactive = 1.5;
 const minutesBetweenAutomatedMessages = 1;
 
+// Loading followers
+const timePerChunk = 3;
+const amountPerChunk = 40;
+
 ////////////
 // Memory //
 ////////////
@@ -35,7 +39,7 @@ const fs = require('fs');
 const discordAllowedGuilds = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
 const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
 
-const twitchChannel = `#${readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0]}`;
+const twitchChannel = readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0];
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -92,6 +96,7 @@ function isBusy() { return tasksBusy.discord || tasksBusy.twitch; }
 async function start() {
     logInfo("Initializing bots...");
     await startTwitch();
+    loadFollowers().then(_ => { setInterval(loadFollowers, 24 * 60 * 60 * 1000); });
     await startDiscord();
     logInfo("Bots initialized successfully!");
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
@@ -178,6 +183,10 @@ function parseTwitch(channel, userState, message) {
                         sendMessageTwitch(channel, "Automated messages have been turned on!");
                     }
                 }
+                break;
+            case "followtime":
+                const follower = isFollower(userId);
+                sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
                 break;
             case "help":
                 sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote`);
@@ -383,7 +392,7 @@ const clientTwitch = new tmi.Client({
         username: readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[1],
         password: `oauth:${readFile(`${__dirname}\\settings\\twitchToken.settings`)[0]}`
     },
-    channels: [twitchChannel]
+    channels: [`#${twitchChannel}`]
 });
 clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
 
@@ -395,8 +404,15 @@ async function startTwitch() {
         ready = false;
         twitch = clientTwitch.connect().catch(err => { logError(err); }).then(_ => { tasksBusy.twitch = true; ready = true; });
         while (!ready) { await sleep(0.25); }
-        ready = false
+        ready = false;
     }
+}
+
+async function loadFollowers() {
+    console.time('followers');
+    getFollowers();
+    while (!hasLoadedAllFollowers()) { await sleep(5); }
+    console.timeEnd('followers');
 }
 
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
@@ -421,11 +437,89 @@ function getAdminLevelTwitch(type) {
     return -1;
 }
 
+const https = require('https');
+
+let parseData = "";
+let parsedData = [];
+let count = 0;
+let followerData = [];
+
+function isFollower(id) {
+    let found = -1;
+    for (let i = 0; i < followerData.length; i++) {
+        if (equals(followerData[i].id, id)) {
+            found = i;
+            break;
+        }
+    }
+    return found;
+}
+
+async function parseDataChunk() {
+    let tempData = parseData;
+    parseData = "";
+    let after = "";
+    {
+        const json = JSON.parse(tempData);
+        after = `${json.pagination.cursor}`;
+        parsedData.push(json);
+        if (!count) {
+            count = json.total;
+            let date = new Date();
+            const estimate = count / amountPerChunk * timePerChunk;
+            date.setTime(date.getTime() + 1000 * estimate);
+            logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`)
+        }
+    }
+    if (after) {
+        await sleep(timePerChunk);
+        getFollowers(after, true);
+    } else {
+        followerData = [];
+        for (let i = 0; i < parsedData.length; i++) {
+            for (let j = 0; j < Math.min(amountPerChunk, count - (40 * i)); j++) {
+                followerData.push({ id: parsedData[i].data[j].user_id, name: `${parsedData[i].data[j].user_name}`, time: parseTwitchTime(`${parsedData[i].data[j].followed_at}`) });
+            }
+        }
+        count = followerData.length;
+        parsedData = [];
+    }
+}
+
+function parseTwitchTime(timeString) {
+    const timeStr = timeString.split("T")[0].split("-");
+    let date = new Date();
+    date.setFullYear(parseInt(timeStr[0]), parseInt(timeStr[1]), parseInt(timeStr[2]));
+    return new Date().getTime();
+}
+
+function hasLoadedAllFollowers() { return followerData.length > 0; }
+
+async function getFollowers(after = "", force = false) {
+    if (!force) { if (parsedData.length || parseData.length) { return; } }
+    const id = readFile(`${__dirname}\\settings\\twitchId.settings`)[0];
+    const options = {
+        hostname: 'api.twitch.tv',
+        path: `/helix/channels/followers?broadcaster_id=${readFile(`${__dirname}\\settings\\twitchRoom.settings`)[0]}&first=${amountPerChunk}${after.length < 1 ? "" : `&after=${after}`}`,
+        headers: {
+            Authorization: `Bearer ${readFile(`${__dirname}\\settings\\twitchToken.settings`)[0]}`,
+            'Client-ID': id
+        }
+    }
+    const req = https.get(options, r => {
+        r.setEncoding('utf8');
+        r.on('data', data => {
+            parseData += data;
+            if (data.indexOf("\"pagination\":") > 1) { parseDataChunk(); }
+        });
+    }).on('error', err => { logError(err); });
+}
+
 /////////////////////
 // Discord backend //
 /////////////////////
 
-const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
+const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType, time} = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: `chat for ${prefix}help`, type: ActivityType.Watching }], status: "" }); });
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
@@ -508,6 +602,13 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 // BOT backend //
 /////////////////
 
+function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime()) {
+    const totalHours = Math.floor(milliTo - milliFrom / 1000 / 60 / 60);
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours - (days * 24);
+    return `${days > 0 ? `${days} days and ` : ""}${hours} hours`;
+}
+
 function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
 
 function equals(first, second) {
@@ -523,7 +624,7 @@ function concat(list, separator = "", start = 0) {
     return result;
 }
 
-function getTimeString() { return (new Date()).toLocaleTimeString(); }
+function getTimeString(date = new Date()) { return date.toLocaleTimeString(); }
 
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (equals(array[i], value)) { return true; } } return false; }
 
@@ -561,12 +662,6 @@ function sumLength(array) {
 }
 
 function writeLineToFile(path, line = "") { fs.appendFile(path, `${line}\n`, err => { logError(err); }); }
-
-function concatenateList(list, prefix = "", suffix = "") {
-    let result = "";
-    for (let i = 0; i < list.length; i++) { result += prefix + list[i] + suffix; }
-    return result;
-}
 
 ///////////////////
 // Program start //
