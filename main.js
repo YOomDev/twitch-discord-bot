@@ -473,15 +473,12 @@ async function parseDataChunk() {
         }
     }
     logInfo(`Chunk loaded: ${parsedData.length}/${Math.ceil(count / amountPerChunk)}`);
-    logInfo(after.toString().length);
-    logInfo(after.toString());
     if (after.toString().length > 10) {
         await sleep(timePerChunk);
         getFollowers(after, true);
     } else {
         followerData = [];
         for (let i = 0; i < parsedData.length; i++) {
-            logInfo(`Parsed: ${i}/${Math.ceil(count / amountPerChunk)}`);
             for (let j = 0; j < Math.min(amountPerChunk, count - (amountPerChunk * i)); j++) {
                 followerData.push({ id: parsedData[i].data[j].user_id, name: `${parsedData[i].data[j].user_name}`, time: parseTwitchTime(`${parsedData[i].data[j].followed_at}`) });
             }
@@ -493,9 +490,7 @@ async function parseDataChunk() {
 
 function parseTwitchTime(timeString) {
     const timeStr = timeString.split("T")[0].split("-");
-    let date = new Date();
-    date.setFullYear(parseInt(timeStr[0]), parseInt(timeStr[1]), parseInt(timeStr[2]));
-    return new Date().getTime();
+    return new Date().setFullYear(parseInt(timeStr[0]), parseInt(timeStr[1]), parseInt(timeStr[2])).getTime();
 }
 
 function hasLoadedAllFollowers() { return followerData.length > 0; }
@@ -608,8 +603,12 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 /////////////////
 
 function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime()) {
-    const totalHours = Math.floor(milliTo - milliFrom / 1000 / 60 / 60);
+    logInfo(milliFrom);
+    logInfo(milliTo);
+    const totalHours = Math.floor((milliTo - milliFrom) / 1000 / 60 / 60);
+    logInfo(totalHours);
     const days = Math.floor(totalHours / 24);
+    logInfo(days);
     const hours = totalHours - (days * 24);
     return `${days > 0 ? `${days} days and ` : ""}${hours} hours`;
 }
