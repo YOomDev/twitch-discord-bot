@@ -467,7 +467,7 @@ async function parseDataChunk() {
         if (!count) {
             count = json.total;
             let date = new Date();
-            const estimate = count / amountPerChunk * (timePerChunk + 1);
+            const estimate = count / amountPerChunk * timePerChunk;
             date.setTime(date.getTime() + 1000 * estimate);
             logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`)
         }
@@ -603,12 +603,8 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 /////////////////
 
 function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime()) {
-    logInfo(milliFrom);
-    logInfo(milliTo);
     const totalHours = Math.floor((milliTo - milliFrom) / 1000 / 60 / 60);
-    logInfo(totalHours);
     const days = Math.floor(totalHours / 24);
-    logInfo(days);
     const hours = totalHours - (days * 24);
     return `${days > 0 ? `${days} days and ` : ""}${hours} hours`;
 }
