@@ -467,7 +467,7 @@ async function parseDataChunk() {
         if (!count) {
             count = json.total;
             let date = new Date();
-            const estimate = count / amountPerChunk * timePerChunk;
+            const estimate = Math.ceil((count - 1) / amountPerChunk) * timePerChunk;
             date.setTime(date.getTime() + 1000 * estimate);
             logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`)
         }
@@ -478,6 +478,7 @@ async function parseDataChunk() {
         getFollowers(after, true);
     } else {
         followerData = [];
+        logInfo("Started parsing follower data...");
         for (let i = 0; i < parsedData.length; i++) {
             for (let j = 0; j < Math.min(amountPerChunk, count - (amountPerChunk * i)); j++) {
                 followerData.push({ id: parsedData[i].data[j].user_id, name: `${parsedData[i].data[j].user_name}`, time: parseTwitchTime(`${parsedData[i].data[j].followed_at}`) });
@@ -485,6 +486,7 @@ async function parseDataChunk() {
         }
         count = followerData.length;
         parsedData = [];
+        logInfo("Finished parsing follower data!");
     }
 }
 
