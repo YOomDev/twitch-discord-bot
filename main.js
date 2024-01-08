@@ -473,7 +473,7 @@ async function parseDataChunk() {
         }
     }
     logInfo(`Chunk loaded: ${parsedData.length}/${Math.ceil(count / amountPerChunk)}`);
-    if (!after) {
+    if (after.toString().length > 10) {
         await sleep(timePerChunk);
         getFollowers(after, true);
     } else {
