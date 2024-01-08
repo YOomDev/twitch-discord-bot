@@ -650,7 +650,7 @@ function readFile(path) {
         for (let i = 0; i < data.length; i++) {
             let line = data[i];
             if (line.endsWith("\r")) { line = line.substring(0, line.length - 1); } // Make sure lines don't end with the first half of the windows end line characters
-            while (line.endsWith(" ")) { line = line.substring(0, line.length - 1); } // Make sure lines don't end with a space character
+            line.trim(); // Make sure lines don't start end with a spaces
             if (line.length) { lines.push(line); }
         }
         return lines;
