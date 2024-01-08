@@ -490,7 +490,9 @@ async function parseDataChunk() {
 
 function parseTwitchTime(timeString) {
     const timeStr = timeString.split("T")[0].split("-");
-    return new Date().setFullYear(parseInt(timeStr[0]), parseInt(timeStr[1]), parseInt(timeStr[2])).getTime();
+    let date = new Date();
+    date.setFullYear(parseInt(timeStr[0]), parseInt(timeStr[1]), parseInt(timeStr[2]))
+    return date.getTime();
 }
 
 function hasLoadedAllFollowers() { return followerData.length > 0; }
