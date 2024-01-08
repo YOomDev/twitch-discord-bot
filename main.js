@@ -185,7 +185,7 @@ function parseTwitch(channel, userState, message) {
                     }
                 }
                 break;
-            case "followtime":
+            case "followage":
                 const follower = isFollower(userId);
                 sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
                 break;
