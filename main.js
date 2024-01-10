@@ -10,7 +10,7 @@ const color_error = "#FF3333";
 const prefix = "!";
 const adminRoles = ["Admin", "Dev"];
 const automatedMessageMinutesBeforeInactive = 1.5;
-const minutesBetweenAutomatedMessages = 1;
+const minutesBetweenAutomatedMessages = 5;
 
 // Loading followers
 const timePerChunk = 3;
