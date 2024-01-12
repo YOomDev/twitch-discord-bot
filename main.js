@@ -40,6 +40,7 @@ const discordAllowedGuilds = readFile(`${__dirname}\\settings\\discordGuilds.set
 const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
 
 const twitchChannel = readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0];
+const twitchIgnoreUsers = readFile(`${__dirname}\\settings\\twitchIgnore.settings`);
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -395,7 +396,12 @@ const clientTwitch = new tmi.Client({
     },
     channels: [`#${twitchChannel}`]
 });
-clientTwitch.on('message', (channel, userState, message, self) => { if (!self) { parseTwitch(channel, userState, message); } });
+clientTwitch.on('message', (channel, userState, message, self) => {
+    if (!self) {
+        for (let i = 0; i < twitchIgnoreUsers.length; i++) { if (equals(twitchIgnoreUsers[i].toLowerCase(), userState['display-name'].toString().toLowerCase())) { return; } }
+        parseTwitch(channel, userState, message);
+    }
+});
 
 // Starting creates a promise that contains the current twitch client, it is stored here to make sure all the different clients can work asynchronously
 let twitch = 0;
