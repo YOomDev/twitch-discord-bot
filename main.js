@@ -473,7 +473,7 @@ async function parseDataChunk() {
         if (!count) {
             count = json.total;
             let date = new Date();
-            const estimate = Math.ceil((count - 1) / amountPerChunk) * timePerChunk;
+            const estimate = (Math.ceil(count / amountPerChunk) - 1) * timePerChunk;
             date.setTime(date.getTime() + 1000 * estimate);
             logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`)
         }
