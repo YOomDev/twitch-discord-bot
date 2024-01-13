@@ -475,7 +475,7 @@ async function parseDataChunk() {
             let date = new Date();
             const estimate = (Math.ceil(count / amountPerChunk) - 1) * timePerChunk;
             date.setTime(date.getTime() + 1000 * estimate);
-            logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`)
+            logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`);
         }
     }
     logInfo(`Chunk loaded: ${parsedData.length}/${Math.ceil(count / amountPerChunk)}`);
@@ -497,9 +497,14 @@ async function parseDataChunk() {
 }
 
 function parseTwitchTime(timeString) {
-    const timeStr = timeString.split("T")[0].split("-");
+    const parts = timeString.split("T")
+    const dateStr = parts[0].split("-");
+    const timeStr = parts[1].replaceAll("Z", "").split(":");
     let date = new Date();
-    date.setFullYear(parseInt(timeStr[0]), parseInt(timeStr[1]), parseInt(timeStr[2]))
+    date.setFullYear(parseInt(dateStr[0]), parseInt(dateStr[1]), parseInt(dateStr[2]));
+    date.setHours(parseInt(timeStr[0]));
+    date.setMinutes(parseInt(timeStr[1]));
+    date.setSeconds(parseInt(timeStr[2]));
     return date.getTime();
 }
 
