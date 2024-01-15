@@ -428,11 +428,11 @@ function sendMessageTwitch(channel, msg) { if (msg.length) { clientTwitch.say(ch
 
 function getUserTypeTwitch(userState) {
     if (equals(userState.username, readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[2])) { return DEVELOPER; }
-    if (userState.badges['broadcaster']) { return BROADCASTER; }
-    if (userState.mod                  ) { return MODERATOR  ; }
-    if (userState.badges['vip']        ) { return VIP        ; }
-    if (userState.subscriber           ) { return SUBSCRIBER ; }
-    if (userState.badges['premium']    ) { return PRIME      ; }
+    if (userState.badges) { if (userState.badges['broadcaster']) { return BROADCASTER; } }
+    if (userState.mod) { return MODERATOR  ; }
+    if (userState.badges) { if (userState.badges['vip']) { return VIP; } }
+    if (userState.subscriber) { return SUBSCRIBER ; }
+    if (userState.badges) { if (userState.badges['premium']) { return PRIME; } }
     logWarning("No role determined from:");
     logData(userState.badges);
     return VIEWER;
@@ -497,7 +497,7 @@ async function parseDataChunk() {
 }
 
 function parseTwitchTime(timeString) {
-    const parts = timeString.split("T")
+    const parts = timeString.split("T");
     const dateStr = parts[0].split("-");
     const timeStr = parts[1].replaceAll("Z", "").split(":");
     let date = new Date();
@@ -621,7 +621,7 @@ function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime()) {
     const totalHours = Math.floor((milliTo - milliFrom) / 1000 / 60 / 60);
     const days = Math.floor(totalHours / 24);
     const hours = totalHours - (days * 24);
-    return `${days > 0 ? `${days} days and ` : ""}${hours} hours`;
+    return `${days > 0 ? `${days} days and ` : ``}${hours} hours`;
 }
 
 function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
