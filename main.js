@@ -206,7 +206,7 @@ function parseTwitch(channel, userState, message) {
                 break;
             case "addquote":
                 if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
-                    let quote = `\n\"${concat(params, " ")}\"`;
+                    let quote = `\n${concat(params, " ")} - ${userState.username}`;
                     fs.appendFile(`${__dirname}\\data\\commands\\quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${__dirname}\\data\\commands\\quote.rand`).length}`); } });
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
                 break;
