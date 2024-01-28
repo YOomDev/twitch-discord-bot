@@ -24,7 +24,7 @@ const amountPerChunk = 40;
 let runMessages = false;
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0;
-let automatedMessages = [];
+const automatedMessages = [];
 let lastTwitchMessageTime = 0;
 
 // Queue's and busy booleans for all different parts
@@ -32,7 +32,7 @@ let tasksBusy  = { discord: false, twitch: false };
 let ready = false; // Used by bots during its start to wait till its ready
 let closing = false;
 
-let twitchChatters = [];
+const twitchChatters = [];
 
 const fs = require('fs');
 
@@ -64,7 +64,6 @@ function parseCustomCommand(command) {
             }
         }
     }
-    let wasCustomCommand = false;
     let result = "";
     for (let i = 0; i < commandFiles.length; i++) {
         const parts = commandFiles[i].split(".");
@@ -72,7 +71,6 @@ function parseCustomCommand(command) {
         parts.splice(parts.length - 1, 1);
         let customCommand = concat(parts, ".").toLowerCase().replaceAll(" ", ".");
         if (equals(command.toLowerCase(), customCommand)) {
-            wasCustomCommand = true;
             switch(type) {
                 case "rand":
                     const options = readFile(`${path}\\${commandFiles[i]}`);
@@ -97,7 +95,7 @@ function isBusy() { return tasksBusy.discord || tasksBusy.twitch; }
 async function start() {
     logInfo("Initializing bots...");
     await startTwitch();
-    loadFollowers();
+    loadFollowers().catch(err => { logError(err); });
     setInterval(loadFollowers, 24 * 60 * 60 * 1000);
     await startDiscord();
     logInfo("Bots initialized successfully!");
@@ -290,7 +288,6 @@ function syncTwitchDiscord(userState) {
 }
 
 async function reloadTwitchTimedMessages() {
-    let messages = [];
     const config = readFile(`${__dirname}\\automated\\messages\\config.txt`);
     for (let i = 0; i < config.length; i++) {
         let line = config[i].split(" ");
@@ -299,7 +296,7 @@ async function reloadTwitchTimedMessages() {
             case "sequence":
             case "list":
                 if (line.length > 1) {
-                    messages.push({ type: line[0], file: concat(line, " ", 1) });
+                    automatedMessages.push({ type: line[0], file: concat(line, " ", 1) });
                     break;
                 }
                 logError(`Couldnt interpret automated message from config line ${i}: ${line}`);
@@ -311,7 +308,6 @@ async function reloadTwitchTimedMessages() {
     }
     runMessages = false;
     await stopAutomatedMessagesManager();
-    automatedMessages = messages; // Replace the messages list
     automatedMessageManager = automatedMessagesManager(); // Start new messages manager
 }
 
@@ -417,7 +413,7 @@ async function startTwitch() {
 
 async function loadFollowers() {
     console.time('followers');
-    getFollowers();
+    getFollowers().catch(err => { logError(err); });
     while (!hasLoadedAllFollowers()) { await sleep(5); }
     console.timeEnd('followers');
 }
@@ -447,43 +443,36 @@ function getAdminLevelTwitch(type) {
 const https = require('https');
 
 let parseData = "";
-let parsedData = [];
+const parsedData = [];
 let count = 0;
-let followerData = [];
+const followerData = [];
 
 function isFollower(id) {
-    let found = -1;
     for (let i = 0; i < followerData.length; i++) {
-        if (equals(followerData[i].id, id)) {
-            found = i;
-            break;
-        }
+        if (equals(followerData[i].id, id)) { return i; }
     }
-    return found;
+    return -1;
 }
 
 async function parseDataChunk() {
-    let tempData = parseData;
+    const tempData = parseData;
     parseData = "";
-    let after = "";
-    {
-        const json = JSON.parse(tempData);
-        after = "" + `${json.pagination.cursor}`;
-        parsedData.push(json);
-        if (!count) {
-            count = json.total;
-            let date = new Date();
-            const estimate = (Math.ceil(count / amountPerChunk) - 1) * timePerChunk;
-            date.setTime(date.getTime() + 1000 * estimate);
-            logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`);
-        }
+    const json = JSON.parse(tempData);
+    const after = `${json.pagination.cursor}`.toString();
+    parsedData.push(json);
+    if (!count) {
+        count = json.total;
+        const date = new Date();
+        const estimate = (Math.ceil(count / amountPerChunk) - 1) * timePerChunk;
+        date.setTime(date.getTime() + 1000 * estimate);
+        logInfo(`Loading time estimation: ${estimate} seconds (ETA: ${getTimeString(date)})`);
     }
     logInfo(`Chunk loaded: ${parsedData.length}/${Math.ceil(count / amountPerChunk)}`);
-    if (after.toString().length > 10) {
+    if (after.length > 10) {
         await sleep(timePerChunk);
-        getFollowers(after, true);
+        getFollowers(after, true).catch(err => { logError(err); });
     } else {
-        followerData = [];
+        followerData.splice(0, followerData.length);
         logInfo("Started parsing follower data...");
         for (let i = 0; i < parsedData.length; i++) {
             for (let j = 0; j < Math.min(amountPerChunk, count - (amountPerChunk * i)); j++) {
@@ -491,7 +480,7 @@ async function parseDataChunk() {
             }
         }
         count = followerData.length;
-        parsedData = [];
+        parsedData.splice(0, parsedData.length);
         logInfo("Finished parsing follower data!");
     }
 }
@@ -500,7 +489,7 @@ function parseTwitchTime(timeString) {
     const parts = timeString.split("T");
     const dateStr = parts[0].split("-");
     const timeStr = parts[1].replaceAll("Z", "").split(":");
-    let date = new Date();
+    const date = new Date();
     date.setFullYear(parseInt(dateStr[0]), parseInt(dateStr[1]), parseInt(dateStr[2]));
     date.setHours(parseInt(timeStr[0]));
     date.setMinutes(parseInt(timeStr[1]));
@@ -545,7 +534,7 @@ const audioPlayerDiscord = createAudioPlayer({ behaviors: { noSubscriber: NoSubs
 audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing \'${error.resource.metadata.title}\'. Full error: (${error.message})`); });
 
 let audioConnection = null;
-let audioQueue = [];
+const audioQueue = [];
 let audioPlaying = false;
 
 async function playAudio(path = "") {
@@ -580,7 +569,7 @@ clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
                 adapterCreator: channel.guild.voiceAdapterCreator
             });
             audioConnection.subscribe(audioPlayerDiscord);
-            playAudio().catch(_ => {});
+            playAudio().catch(err => { logError(err); });
         } else {
             logInfo(`User ${oldState.member.user.username} left channel ${oldState.channel.id}`);
             // Member left channel
@@ -606,7 +595,7 @@ async function startDiscord() {
 async function stopDiscord() { clientDiscord.destroy(); await sleep(1); tasksBusy.discord = false; }
 
 function sendEmbedDiscord(channel, title, description, col = color, fields = []) {
-    let embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
+    const embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
     for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
     channel.send({ embeds: [embed] });
 }
@@ -661,7 +650,7 @@ function getFilenamesFromFolder(path) {
 function readFile(path) {
     try {
         const data = fs.readFileSync(path, 'utf8').split("\n");
-        let lines = [];
+        const lines = [];
         for (let i = 0; i < data.length; i++) {
             let line = data[i];
             if (line.endsWith("\r")) { line = line.substring(0, line.length - 1); } // Make sure lines don't end with the first half of the windows end line characters
