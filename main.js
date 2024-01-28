@@ -619,9 +619,11 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 
 function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime()) {
     const totalHours = Math.floor((milliTo - milliFrom) / 1000 / 60 / 60);
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours - (days * 24);
-    return `${days > 0 ? `${days} days and ` : ``}${hours} hours`;
+    const totalDays = Math.floor(totalHours / 24);
+    const years = Math.floor(days / 365);
+    const days = totalDays - (years * 365);
+    const hours = totalHours - (totalDays * 24);
+    return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours`;
 }
 
 function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
