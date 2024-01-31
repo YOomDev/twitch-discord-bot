@@ -20,6 +20,9 @@ const amountPerChunk = 40;
 // Memory //
 ////////////
 
+const botStartTime = new Date().getTime();
+let streamStartTime = new Date().getTime();
+
 // automated messages
 let runMessages = false;
 let currentAutomatedMessage = 0;
@@ -171,17 +174,22 @@ function parseTwitch(channel, userState, message) {
                 logData(getUserTypeTwitch(userState));
                 break;
             case "streamon":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) { twitchChatters.splice(0, twitchChatters.length); } // Clear first time chats for this stream
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
+                    twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
+                    streamStartTime = new Date().getTime();
+                }
+                break;
+            case "uptime":
+                const currentTime = new Date().getTime();
+                if (streamStartTime === botStartTime) { sendMessageTwitch(`Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}, stream time might differ due to a possible bot restart.`); }
+                else { sendMessageTwitch(`Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}.`); }
                 break;
             case "automsg":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
-                    if (automatedMessageManager) {
-                        stopAutomatedMessagesManager().catch(err => { logError(err); });
-                        sendMessageTwitch(channel, "Automated messages have been turned off.");
-                    } else {
-                        reloadTwitchTimedMessages().catch(err => { logError(err); });
-                        sendMessageTwitch(channel, "Automated messages have been turned on!");
-                    }
+                    const wasRunning = automatedMessageManager !== 0;
+                    if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
+                    else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
+                    sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `on` : `off`}!`);
                 }
                 break;
             case "followage":
@@ -606,13 +614,15 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 // BOT backend //
 /////////////////
 
-function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime()) {
-    const totalHours = Math.floor((milliTo - milliFrom) / 1000 / 60 / 60);
+function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime(), showMinutes = false) {
+    const totalMinutes = Math.floor((milliTo - milliFrom) / 1000 / 60);
+    const totalHours = Math.floor(totalMinutes / 60);
     const totalDays = Math.floor(totalHours / 24);
     const years = Math.floor(totalDays / 365);
     const days = totalDays - (years * 365);
     const hours = totalHours - (totalDays * 24);
-    return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours`;
+    const minutes = totalMinutes - (totalHours * 60);
+    return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours${showMinutes ? (minutes > 0 ? `${minutes}` : ``) : ``}`;
 }
 
 function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
