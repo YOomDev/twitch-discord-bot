@@ -177,13 +177,13 @@ function parseTwitch(channel, userState, message) {
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
                     streamStartTime = new Date().getTime();
-                    sendMessageTwitch("Bots chat memory has been reset, have a nice stream!");
+                    sendMessageTwitch(channel, "Bots chat memory has been reset, have a nice stream!");
                 }
                 break;
             case "uptime":
                 const currentTime = new Date().getTime();
                 if (streamStartTime === botStartTime) { sendMessageTwitch(`Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}, stream time might differ due to a possible bot restart.`); }
-                else { sendMessageTwitch(`Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}.`); }
+                else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}.`); }
                 break;
             case "automsg":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
