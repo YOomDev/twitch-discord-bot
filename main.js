@@ -182,8 +182,8 @@ function parseTwitch(channel, userState, message) {
                 break;
             case "uptime":
                 const currentTime = new Date().getTime();
-                if (streamStartTime === botStartTime) { sendMessageTwitch(`Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}, stream time might differ due to a possible bot restart.`); }
-                else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime)}.`); }
+                if (streamStartTime === botStartTime) { sendMessageTwitch(`Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}, stream time might differ due to a possible bot restart.`); }
+                else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}.`); }
                 break;
             case "automsg":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
