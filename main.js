@@ -182,8 +182,8 @@ function parseTwitch(channel, userState, message) {
                 break;
             case "uptime":
                 const currentTime = new Date().getTime();
-                if (streamStartTime === botStartTime) { sendMessageTwitch(`Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}, stream time might differ due to a possible bot restart.`.toString()); }
-                else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}.`.toString()); }
+                if (streamStartTime === botStartTime) { sendMessageTwitch(`Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}, stream time might differ due to a possible bot restart.`); }
+                else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}.`); }
                 break;
             case "automsg":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
@@ -198,7 +198,7 @@ function parseTwitch(channel, userState, message) {
                 sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
                 break;
             case "help":
-                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote`.toString());
+                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote`);
                 break;
             case "timer":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
@@ -206,16 +206,16 @@ function parseTwitch(channel, userState, message) {
                         const name = params[0];
                         const number = parseInt(params[1]);
                         if (!isNaN(number)) {
-                            sleep(60 * number).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended`.toString()); playAudio(`${name}.mp3`).catch(err => logError(err)) });
-                        } else { sendMessageTwitch(channel, `Second argument is not a number!`.toString());}
-                    } else { sendMessageTwitch(channel, `Not enough arguments given!`.toString()); }
-                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`.toString()); }
+                            sleep(60 * number).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
+                        } else { sendMessageTwitch(channel, `Second argument is not a number!`);}
+                    } else { sendMessageTwitch(channel, `Not enough arguments given!`); }
+                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`); }
                 break;
             case "addquote":
                 if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
                     let quote = `\n\"${concat(params, " ")}\" - ${userState.username}`;
                     fs.appendFile(`${__dirname}\\data\\commands\\quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${__dirname}\\data\\commands\\quote.rand`).length}`); } });
-                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`.toString()); }
+                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
                 break;
             case "sync":
                 if (isVerifiedTwitch(userId)) {
@@ -226,7 +226,7 @@ function parseTwitch(channel, userState, message) {
             case "verify":
                 if (params.length > 0) {
                     if (!isVerifiedTwitch(userId)) {
-                        if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`.toString()); }
+                        if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`); }
                         else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
                     } else { sendMessageTwitch(channel, "You have already been verified!"); }
                 } else { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); }
