@@ -623,7 +623,7 @@ function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime(), show
     const days = totalDays - (years * 365);
     const hours = totalHours - (totalDays * 24);
     const minutes = totalMinutes - (totalHours * 60);
-    return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours${showMinutes ? (minutes > 0 ? `and ${minutes} minutes` : ``) : ``}`;
+    return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours${showMinutes ? (minutes > 0 ? ` and ${minutes} minutes` : ``) : ``}`;
 }
 
 function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
