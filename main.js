@@ -20,11 +20,13 @@ const amountPerChunk = 40;
 // Memory //
 ////////////
 
+const fs = require('fs');
+
 const botStartTime = new Date().getTime();
 let streamStartTime = new Date().getTime();
 
 // automated messages
-let runMessages = false;
+let runMessages = equals(readFile(`${__dirname}\\settings\\autoMessageOnStart.settings`)[0].toLowerCase(), "true");
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0;
 const automatedMessages = [];
@@ -36,8 +38,6 @@ let ready = false; // Used by bots during its start to wait till its ready
 let closing = false;
 
 const twitchChatters = [];
-
-const fs = require('fs');
 
 const discordAllowedGuilds = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
 const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
@@ -102,6 +102,10 @@ async function start() {
     setInterval(loadFollowers, 24 * 60 * 60 * 1000);
     await startDiscord();
     logInfo("Bots initialized successfully!");
+    if (runMessages && automatedMessageManager === 0) {
+        await reloadTwitchTimedMessages();
+        automatedMessageManager = automatedMessagesManager();
+    }
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
     logInfo("Program stopped!");
 }
