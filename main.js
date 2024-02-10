@@ -190,7 +190,7 @@ function parseTwitch(channel, userState, message) {
                     const wasRunning = automatedMessageManager !== 0;
                     if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
                     else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
-                    sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `on` : `off`}!`);
+                    sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `off` : `on`}!`);
                 }
                 break;
             case "followage":
