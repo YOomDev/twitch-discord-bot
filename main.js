@@ -331,44 +331,48 @@ async function stopAutomatedMessagesManager() {
     currentAutomatedMessage = 0;
 }
 
-async function awaitAutomatedMessageActive() { while (!(lastTwitchMessageTime > (new Date()).getTime() - (automatedMessageMinutesBeforeInactive * 1000 * 60))) { await sleep(1); } }
+function isChatActive() { return lastTwitchMessageTime > (new Date()).getTime() - (automatedMessageMinutesBeforeInactive * 1000 * 60); }
+
+async function awaitAutomatedMessageActive() { while (!isChatActive()) { await sleep(1); } }
 
 async function automatedMessagesManager() {
     runMessages = true;
     while (runMessages) {
         await awaitAutomatedMessageActive();
-        await playAutomatedMessage();
         await sleep(60 * minutesBetweenAutomatedMessages);
+        await playAutomatedMessage();
     }
 }
 
 async function playAutomatedMessage() {
-    if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
-    const message = automatedMessages[currentAutomatedMessage];
-    let lines = readFile(`${__dirname}\\automated\\messages\\${message.file}.txt`);
-    switch (message.type) {
-        case "message":
-            sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
-            break;
-        case "sequence":
-            for (let i = 0; i < lines.length; i++) {
-                await awaitAutomatedMessageActive();
-                await sleep(60 * minutesBetweenAutomatedMessages);
-                sendMessageTwitch(twitchChannel, lines[i]);
-            }
-            break;
-        case "list":
-            for (let i = 0; i < lines.length; i++) {
-                await awaitAutomatedMessageActive();
-                await sleep(5);
-                sendMessageTwitch(twitchChannel, lines[i]);
-            }
-            break;
-        default:
-            logError(`Message type (${message.type}) not implemented. `);
-            break;
+    if (isChatActive()) {
+        if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
+        const message = automatedMessages[currentAutomatedMessage];
+        let lines = readFile(`${__dirname}\\automated\\messages\\${message.file}.txt`);
+        switch (message.type) {
+            case "message":
+                sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
+                break;
+            case "sequence":
+                for (let i = 0; i < lines.length; i++) {
+                    await awaitAutomatedMessageActive();
+                    await sleep(60 * minutesBetweenAutomatedMessages);
+                    sendMessageTwitch(twitchChannel, lines[i]);
+                }
+                break;
+            case "list":
+                for (let i = 0; i < lines.length; i++) {
+                    await awaitAutomatedMessageActive();
+                    await sleep(5);
+                    sendMessageTwitch(twitchChannel, lines[i]);
+                }
+                break;
+            default:
+                logError(`Message type (${message.type}) not implemented. `);
+                break;
+        }
+        currentAutomatedMessage++;
     }
-    currentAutomatedMessage++;
 }
 
 ////////////////////
