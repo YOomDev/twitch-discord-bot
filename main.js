@@ -337,8 +337,8 @@ async function automatedMessagesManager() {
     runMessages = true;
     while (runMessages) {
         await awaitAutomatedMessageActive();
-        await playAutomatedMessage();
         await sleep(60 * minutesBetweenAutomatedMessages);
+        await playAutomatedMessage();
     }
 }
 
