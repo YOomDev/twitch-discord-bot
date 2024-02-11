@@ -52,9 +52,12 @@ const commandFileTypes = ["rand"];
 // Custom commands //
 /////////////////////
 
-function parseCustomCommand(command) {
-    const path = `${__dirname}\\data\\commands`;
-    const filesInCommandFolder = getFilenamesFromFolder(path);
+function getCustomCommands() {
+
+}
+
+function getCustomCommandFiles() {
+    const filesInCommandFolder = getFilenamesFromFolder(`${__dirname}\\data\\commands`);
     const commandFiles = [];
     for (let i = 0; i < filesInCommandFolder.length; i++) {
         const parts = filesInCommandFolder[i].split(".");
@@ -67,6 +70,12 @@ function parseCustomCommand(command) {
             }
         }
     }
+    return commandFiles;
+}
+
+function parseCustomCommand(command) {
+    const path = `${__dirname}\\data\\commands`;
+    const commandFiles = getCustomCommandFiles();
     let result = "";
     for (let i = 0; i < commandFiles.length; i++) {
         const parts = commandFiles[i].split(".");
@@ -643,9 +652,9 @@ function equals(first, second) {
     }
 }
 
-function concat(list, separator = "", start = 0) {
+function concat(list, separator = "", prefix = "", start = 0) {
     let result = "";
-    for (let i = start; i < list.length; i++) { result += (i <= start ? "" : separator) + list[i]; }
+    for (let i = start; i < list.length; i++) { result += (i <= start ? "" : separator) + prefix + list[i]; }
     return result;
 }
 
