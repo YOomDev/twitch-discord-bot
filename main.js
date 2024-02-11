@@ -3,6 +3,8 @@
 // Settings //
 //////////////
 
+const https = require('https');
+
 const color = "#FF8888"
 const color_error = "#FF3333";
 
@@ -24,6 +26,10 @@ const fs = require('fs');
 
 const botStartTime = new Date().getTime();
 let streamStartTime = new Date().getTime();
+
+// Requests
+let lastRequestId = -1;
+const requests = [];
 
 // automated messages
 let runMessages = equals(readFile(`${__dirname}\\settings\\autoMessageOnStart.settings`)[0].toLowerCase(), "true");
@@ -47,6 +53,39 @@ const twitchIgnoreUsers = readFile(`${__dirname}\\settings\\twitchIgnore.setting
 
 // Custom commands
 const commandFileTypes = ["rand"];
+
+///////////////////////////////////
+// Basic request and resolve API //
+///////////////////////////////////
+
+function createRequest() {
+    lastRequestId += 1;
+    const id = lastRequestId;
+    requests.push({ id: id, resolved: false, data: 0 });
+    return id;
+}
+
+async function getSolvedRequest(id){
+    while (true) {
+        await sleep(0.5);
+        for (let i = 0; i < requests.length; i++) {
+            if (requests[i].id === id) {
+                if (requests[i].resolved) { return requests[i].data; }
+                break;
+            }
+        }
+    }
+}
+
+function resolveRequest(id, data) {
+    for (let i = 0; i < requests.length; i++) {
+        if (requests[i].id === id) {
+            requests[i].data = data;
+            requests[i].resolved = true;
+            return;
+        }
+    }
+}
 
 /////////////////////
 // Custom commands //
@@ -171,7 +210,7 @@ function parseDiscord(message) {
     }
 }
 
-function parseTwitch(channel, userState, message) {
+async function parseTwitch(channel, userState, message) {
     lastTwitchMessageTime = (new Date()).getTime();
     const userId = userState['user-id'];
     if (message.startsWith(prefix)) { // Check if the message is a command
@@ -208,6 +247,9 @@ function parseTwitch(channel, userState, message) {
                     else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
                     sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `off` : `on`}!`);
                 }
+                break;
+            case "dad":
+                sendMessageTwitch(await getDadJoke());
                 break;
             case "followage":
                 const follower = isFollower(userId);
@@ -286,6 +328,19 @@ function verify(twitchId, code) {
         }
     }
     return false;
+}
+
+async function getDadJoke() {
+    const id = createRequest();
+    const options = {
+        hostname: 'icanhazdadjoke.com',
+        headers: { Accept: "text/plain" }
+    }
+    const req = https.get(options, r => {
+        r.setEncoding('utf8');
+        r.on('data', data => { resolveRequest(id, data); });
+    }).on('error', err => { logError(err); });
+    return await getSolvedRequest(id);
 }
 
 // File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verified)
@@ -468,8 +523,6 @@ function getAdminLevelTwitch(type) {
     logWarning(`No admin level found for type: ${type}`);
     return -1;
 }
-
-const https = require('https');
 
 let parseData = "";
 const parsedData = [];
