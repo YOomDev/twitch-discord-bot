@@ -336,7 +336,7 @@ async function getDadJoke() {
         hostname: 'icanhazdadjoke.com',
         headers: { Accept: "text/plain" }
     }
-    const req = https.get(options, r => {
+    https.get(options, r => {
         r.setEncoding('utf8');
         r.on('data', data => { resolveRequest(id, data); });
     }).on('error', err => { logError(err); });
@@ -592,7 +592,7 @@ async function getFollowers(after = "", force = false) {
             'Client-ID': id
         }
     }
-    const req = https.get(options, r => {
+    https.get(options, r => {
         r.setEncoding('utf8');
         r.on('data', data => {
             parseData += data;
