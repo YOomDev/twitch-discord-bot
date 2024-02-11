@@ -13,8 +13,8 @@ const automatedMessageMinutesBeforeInactive = 1.5;
 const minutesBetweenAutomatedMessages = 5;
 
 // Loading followers
-const timePerChunk = 3;
-const amountPerChunk = 40;
+const timePerChunk = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
+const amountPerChunk = 40; // The amount of followers requested per request to the twitch API
 
 ////////////
 // Memory //
@@ -28,14 +28,14 @@ let streamStartTime = new Date().getTime();
 // automated messages
 let runMessages = equals(readFile(`${__dirname}\\settings\\autoMessageOnStart.settings`)[0].toLowerCase(), "true");
 let currentAutomatedMessage = 0;
-let automatedMessageManager = 0;
+let automatedMessageManager = 0; // container for the async function runner automatedMessagesManager()
 const automatedMessages = [];
 let lastTwitchMessageTime = 0;
 
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false };
 let ready = false; // Used by bots during its start to wait till its ready
-let closing = false;
+let closing = false; // Used for if any part of the program needs to know that it is shutting down.
 
 const twitchChatters = [];
 
