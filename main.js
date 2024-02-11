@@ -53,7 +53,10 @@ const commandFileTypes = ["rand"];
 /////////////////////
 
 function getCustomCommands() {
-
+    const commands = getCustomCommandFiles();
+    const list = [];
+    for (let i = 0; i < commands.length; i++) { list.push(commands[i].split(".")[0]); }
+    return concat(list, " ", prefix);
 }
 
 function getCustomCommandFiles() {
@@ -61,7 +64,7 @@ function getCustomCommandFiles() {
     const commandFiles = [];
     for (let i = 0; i < filesInCommandFolder.length; i++) {
         const parts = filesInCommandFolder[i].split(".");
-        if (parts.length > 1) {
+        if (parts.length === 2) {
             for (let j = 0; j < commandFileTypes.length; j++) {
                 if (equals(parts[parts.length - 1].toLowerCase(), (`${commandFileTypes[j]}`).toLowerCase())) {
                     commandFiles.push(filesInCommandFolder[i]);
@@ -211,7 +214,7 @@ function parseTwitch(channel, userState, message) {
                 sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
                 break;
             case "help":
-                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime`);
+                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${getCustomCommands()}`);
                 break;
             case "timer":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
