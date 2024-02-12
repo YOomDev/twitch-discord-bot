@@ -251,7 +251,7 @@ async function parseTwitch(channel, userState, message) {
                 }
                 break;
             case "dad":
-            case "dadjoke":
+            case "joke":
                 sendMessageTwitch(channel, await getDadJoke());
                 break;
             case "followtime":
