@@ -241,6 +241,8 @@ async function parseTwitch(channel, userState, message) {
                 else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}.`); }
                 break;
             case "automsg":
+            case "automessage":
+            case "automatedmessage":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
                     const wasRunning = automatedMessageManager !== 0;
                     if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
@@ -249,14 +251,17 @@ async function parseTwitch(channel, userState, message) {
                 }
                 break;
             case "dad":
+            case "dadjoke":
                 sendMessageTwitch(channel, await getDadJoke());
                 break;
+            case "followtime":
             case "followage":
                 const follower = isFollower(userId);
                 sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
                 break;
+            case "commands":
             case "help":
-                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${getCustomCommands()}`);
+                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${prefix}dad ${getCustomCommands()}`);
                 break;
             case "timer":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
