@@ -218,7 +218,6 @@ function parseDiscord(message) {
 }
 
 async function parseTwitch(channel, userState, message) {
-    lastTwitchMessageTime = (new Date()).getTime();
     const userId = userState['user-id'];
     if (message.startsWith(prefix)) { // Check if the message is a command
         // Gather the needed info for the command
@@ -309,10 +308,13 @@ async function parseTwitch(channel, userState, message) {
                 if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
                 break;
         }
-    } else if (!contains(twitchChatters, userId)) {
-        twitchChatters.push(userId);
-        const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
-        sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState.username));
+    } else {
+        lastTwitchMessageTime = (new Date()).getTime();
+        if (!contains(twitchChatters, userId)) {
+            twitchChatters.push(userId);
+            const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
+            sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState.username));
+        }
     }
 }
 
