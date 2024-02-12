@@ -166,6 +166,7 @@ async function stop() {
         closing = true;
         if (tasksBusy.discord) { await stopDiscord(); }
         if (tasksBusy.twitch) { await stopTwitch(); }
+        if (automatedMessageManager) { await stopAutomatedMessagesManager(); }
     }
 }
 
