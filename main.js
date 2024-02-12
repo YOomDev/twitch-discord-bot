@@ -340,7 +340,7 @@ async function getDadJoke() {
         r.setEncoding('utf8');
         r.on('data', data => { resolveRequest(id, data); });
     }).on('error', err => { logError(err); });
-    return await getSolvedRequest(id);
+    return (await getSolvedRequest(id)).toString();
 }
 
 // File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verified)
