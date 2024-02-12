@@ -37,7 +37,6 @@ let runMessages = equals(readFile(`${__dirname}\\settings\\autoMessageOnStart.se
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0; // container for the async function runner automatedMessagesManager()
 const automatedMessages = [];
-let lastTwitchMessageTime = 0;
 let hasTimePassedSinceLastAutomatedMessage = true;
 let messagesSinceLastAutomatedMessage = 0;
 
