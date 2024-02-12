@@ -181,7 +181,7 @@ function parseDiscord(message) {
         // Grab needed info for the commands
         const params = message.content.substring(prefix.length, message.content.length).split(" ");
         const command = params[0].toLowerCase();
-        // const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
+        const member = message.guild.members.cache.get(message.author.id); // Get member variable for admin check and for roles
         params.splice(0, 1);
 
         // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
@@ -204,6 +204,10 @@ function parseDiscord(message) {
                     if (code.length) { sendEmbedDiscord(message.author, "Verification-code", `Code: ${code}`); }
                     else { sendEmbedDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before.", color_error); }
                 } else { sendEmbedDiscord(message.author, "Couldn't verify", "Account is already verified!", color_error); }
+                break;
+            case "stop":
+                if (isAdminDiscord(member)) { stop().catch(err => { logError(err); }); }
+                else { sendEmbedDiscord(message.channel, "No permission", "You do not have the right permissions to use this command.", color_error); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
@@ -250,7 +254,7 @@ async function parseTwitch(channel, userState, message) {
             case "automessage":
             case "automatedmessage":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
-                    const wasRunning = automatedMessageManager !== 0;
+                    const wasRunning = runMessages;
                     if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
                     else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
                     sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `off` : `on`}!`);
