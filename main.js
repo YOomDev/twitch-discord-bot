@@ -164,9 +164,15 @@ async function start() {
 async function stop() {
     if (!closing) {
         closing = true;
-        if (tasksBusy.discord) { await stopDiscord(); }
-        if (tasksBusy.twitch) { await stopTwitch(); }
-        if (automatedMessageManager) { await stopAutomatedMessagesManager(); }
+        if (tasksBusy.discord) {
+            await stopDiscord();
+            logData("Stopped discord bot");
+        }
+        if (tasksBusy.twitch) {
+            await stopTwitch();
+            logData("Stopped twitch bot");
+        }
+        process.exit(0);
     }
 }
 
