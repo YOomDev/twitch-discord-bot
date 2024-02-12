@@ -249,7 +249,7 @@ async function parseTwitch(channel, userState, message) {
                 }
                 break;
             case "dad":
-                sendMessageTwitch(await getDadJoke());
+                sendMessageTwitch(channel, await getDadJoke());
                 break;
             case "followage":
                 const follower = isFollower(userId);
