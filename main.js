@@ -11,8 +11,9 @@ const color_error = "#FF3333";
 // Commands
 const prefix = "!";
 const adminRoles = ["Admin", "Dev"];
-const automatedMessageMinutesBeforeInactive = 1.5;
+
 const minutesBetweenAutomatedMessages = 5;
+const messagesNeededBeforeAutomatedMessage = 5;
 
 // Loading followers
 const timePerChunk = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
@@ -37,6 +38,8 @@ let currentAutomatedMessage = 0;
 let automatedMessageManager = 0; // container for the async function runner automatedMessagesManager()
 const automatedMessages = [];
 let lastTwitchMessageTime = 0;
+let hasTimePassedSinceLastAutomatedMessage = false;
+let messagesSinceLastAutomatedMessage = 0;
 
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false };
@@ -313,7 +316,7 @@ async function parseTwitch(channel, userState, message) {
                 break;
         }
     } else {
-        lastTwitchMessageTime = (new Date()).getTime();
+        messagesSinceLastAutomatedMessage += 1;
         if (!contains(twitchChatters, userId)) {
             twitchChatters.push(userId);
             const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
@@ -416,7 +419,10 @@ async function stopAutomatedMessagesManager() {
     currentAutomatedMessage = 0;
 }
 
-function isChatActive() { return lastTwitchMessageTime > (new Date()).getTime() - (automatedMessageMinutesBeforeInactive * 1000 * 60); }
+function isChatActive() {
+    if (messagesSinceLastAutomatedMessage < messagesNeededBeforeAutomatedMessage) { return false; }
+    return hasTimePassedSinceLastAutomatedMessage;
+}
 
 async function awaitAutomatedMessageActive() { while (!isChatActive() && runMessages) { await sleep(1); } }
 
@@ -424,8 +430,7 @@ async function automatedMessagesManager() {
     runMessages = true;
     while (runMessages) {
         await awaitAutomatedMessageActive();
-        await sleep(60 * minutesBetweenAutomatedMessages);
-        await playAutomatedMessage();
+        await playAutomatedMessage().then(_ => { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); } );
     }
 }
 
