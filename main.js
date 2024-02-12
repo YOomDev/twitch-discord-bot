@@ -414,7 +414,7 @@ async function stopAutomatedMessagesManager() {
 
 function isChatActive() { return lastTwitchMessageTime > (new Date()).getTime() - (automatedMessageMinutesBeforeInactive * 1000 * 60); }
 
-async function awaitAutomatedMessageActive() { while (!isChatActive()) { await sleep(1); } }
+async function awaitAutomatedMessageActive() { while (!isChatActive() && runMessages) { await sleep(1); } }
 
 async function automatedMessagesManager() {
     runMessages = true;
