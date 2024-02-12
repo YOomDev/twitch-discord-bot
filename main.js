@@ -1,16 +1,24 @@
 
+//////////////////
+// Dependencies //
+//////////////////
+
+const fs = require('fs');
+const https = require('https');
+const tmi = require("tmi.js");
+const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType, time} = require('discord.js');
+const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+
 //////////////
 // Settings //
 //////////////
-
-const https = require('https');
 
 const color = "#FF8888"
 const color_error = "#FF3333";
 
 // Commands
 const prefix = "!";
-const adminRoles = ["Admin", "Dev"];
+const adminRoles = readFile(`${__dirname}\\settings\\discordAdminRoles.settings`);
 
 const minutesBetweenAutomatedMessages = 5;
 const messagesNeededBeforeAutomatedMessage = 5;
@@ -22,8 +30,6 @@ const amountPerChunk = 40; // The amount of followers requested per request to t
 ////////////
 // Memory //
 ////////////
-
-const fs = require('fs');
 
 const botStartTime = new Date().getTime();
 let streamStartTime = new Date().getTime();
@@ -488,7 +494,6 @@ const adminLevels = [
 ];
 
 // Twitch
-const tmi = require("tmi.js");
 const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
@@ -627,12 +632,9 @@ async function getFollowers(after = "", force = false) {
 // Discord backend //
 /////////////////////
 
-const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType, time} = require('discord.js');
 const clientDiscord = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 clientDiscord.once(Events.ClientReady, () => { ready = true; logInfo("Bot is online!"); logData(clientDiscord.options.intents); clientDiscord.user.setPresence({ activities: [{ name: `chat for ${prefix}help`, type: ActivityType.Watching }], status: "" }); });
 clientDiscord.on(Events.MessageCreate, message => { if (message.author.id !== clientDiscord.user.id) { parseDiscord(message); } });
-
-const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus } = require('@discordjs/voice');
 
 const audioPlayerDiscord = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
 audioPlayerDiscord.on('error', error => { logError(`Audio player had an error while playing \'${error.resource.metadata.title}\'. Full error: (${error.message})`); });
