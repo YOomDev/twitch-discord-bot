@@ -6,7 +6,7 @@
 const fs = require('fs');
 const https = require('https');
 const tmi = require("tmi.js");
-const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType, time} = require('discord.js');
+const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 
 //////////////
@@ -95,10 +95,6 @@ function resolveRequest(id, data) {
     }
 }
 
-async function isChannelLive() {
-    return (await (await fetch(`https://twitch.tv/${twitchChannel}`)).text()).indexOf("\"isLiveBroadcast\":true") > 0;
-}
-
 /////////////////////
 // Custom commands //
 /////////////////////
@@ -162,7 +158,8 @@ async function start() {
     logInfo("Initializing bots...");
     await startTwitch();
     loadFollowers().catch(err => { logError(err); });
-    setInterval(loadFollowers, 24 * 60 * 60 * 1000);
+    setInterval(loadFollowers, 24 * 60 * 60 * 1000); // Reloads the followers list every 24 hours
+    isTwitchChannelLive().catch(err => { logError(err); }); // Loads the last starting time of the twitch stream if it is currently live
     await startDiscord();
     logInfo("Bots initialized successfully!");
     if (runMessages && automatedMessageManager === 0) {
@@ -536,6 +533,17 @@ async function loadFollowers() {
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
 function sendMessageTwitch(channel, msg) { if (msg.length) { clientTwitch.say(channel, msg); } }
+
+async function isTwitchChannelLive() {
+    const text = await (await fetch(`https://twitch.tv/${twitchChannel}`)).text();
+    const liveIndex = text.indexOf("\",\"isLiveBroadcast\":true");
+    if (liveIndex > 0) {
+        const findStr = "\"startDate\":\"";
+        streamStartTime = Date.parse(text.substring(text.indexOf(findStr) + findStr.length, liveIndex));
+        return true;
+    }
+    return false;
+}
 
 function getUserTypeTwitch(userState) {
     if (equals(userState.username, readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[2])) { return DEVELOPER; }
