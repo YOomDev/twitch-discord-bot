@@ -95,6 +95,10 @@ function resolveRequest(id, data) {
     }
 }
 
+async function isChannelLive() {
+    return (await (await fetch(`https://twitch.tv/${twitchChannel}`)).text()).indexOf("\"isLiveBroadcast\":true") > 0;
+}
+
 /////////////////////
 // Custom commands //
 /////////////////////
