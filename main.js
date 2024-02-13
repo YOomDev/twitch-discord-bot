@@ -416,6 +416,7 @@ async function reloadTwitchTimedMessages() {
     }
     runMessages = false;
     await stopAutomatedMessagesManager();
+    logData(automatedMessages);
     automatedMessageManager = automatedMessagesManager(); // Start new messages manager
 }
 
@@ -437,7 +438,7 @@ async function automatedMessagesManager() {
     runMessages = true;
     while (runMessages) {
         await awaitAutomatedMessageActive();
-        await playAutomatedMessage().then(_ => { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); } );
+        await playAutomatedMessage();
     }
 }
 
@@ -450,16 +451,17 @@ async function playAutomatedMessage() {
             case "message":
                 sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
                 break;
-            case "sequence":
+            case "sequence": // TODO: Fix double message
                 for (let i = 0; i < lines.length; i++) {
+                    sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; });
                     await awaitAutomatedMessageActive();
-                    await sleep(60 * minutesBetweenAutomatedMessages);
+                    hasTimePassedSinceLastAutomatedMessage = false;
+                    messagesSinceLastAutomatedMessage = 0;
                     sendMessageTwitch(twitchChannel, lines[i]);
                 }
                 break;
-            case "list":
+            case "list": // TODO: Fix messages not getting sent or loaded
                 for (let i = 0; i < lines.length; i++) {
-                    await awaitAutomatedMessageActive();
                     await sleep(5);
                     sendMessageTwitch(twitchChannel, lines[i]);
                 }
@@ -471,6 +473,7 @@ async function playAutomatedMessage() {
         currentAutomatedMessage++;
         hasTimePassedSinceLastAutomatedMessage = false;
         messagesSinceLastAutomatedMessage = 0;
+        sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; });
     }
 }
 
