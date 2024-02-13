@@ -251,7 +251,6 @@ async function parseTwitch(channel, userState, message) {
             case "streamon":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
-                    streamStartTime = new Date().getTime();
                     sendMessageTwitch(channel, "Bots chat memory has been reset, have a nice stream!");
                 }
                 break;
