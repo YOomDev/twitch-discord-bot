@@ -469,6 +469,8 @@ async function playAutomatedMessage() {
                 break;
         }
         currentAutomatedMessage++;
+        hasTimePassedSinceLastAutomatedMessage = false;
+        messagesSinceLastAutomatedMessage = 0;
     }
 }
 
