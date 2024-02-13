@@ -407,10 +407,10 @@ async function reloadTwitchTimedMessages() {
                     automatedMessages.push({ type: line[0], file: concat(line, " ", 1) });
                     break;
                 }
-                logError(`Couldnt interpret automated message from config line ${i}: ${line}`);
+                logError(`Couldn\'t interpret automated message from config line ${i}: ${line}`);
                 break;
             default:
-                logError(`Couldnt interpret automated message from config line ${i}: ${line}`);
+                logError(`Couldn\'t interpret automated message from config line ${i}: ${line}`);
                 break;
         }
     }
