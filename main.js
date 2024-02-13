@@ -536,7 +536,7 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 function sendMessageTwitch(channel, msg) { if (msg.length) { clientTwitch.say(channel, msg); } }
 
 async function isTwitchChannelLive() {
-    const text = await (await fetch(`https://twitch.tv/${twitchChannel}`)).text();
+    const text = await (await fetch(`https://twitch.tv/${twitchChannel}`).catch(err => { logError(err); return { text: async function() { return ""; }}})).text();
     const liveIndex = text.indexOf("\",\"isLiveBroadcast\":true");
     if (liveIndex > 0) {
         const findStr = "\"startDate\":\"";
