@@ -159,6 +159,7 @@ async function start() {
     await startTwitch();
     loadFollowers().catch(err => { logError(err); });
     setInterval(loadFollowers, 24 * 60 * 60 * 1000); // Reloads the followers list every 24 hours
+    setInterval(isTwitchChannelLive, 2 * 60 * 1000); // Checks if the channel is live every 2 minutes
     isTwitchChannelLive().catch(err => { logError(err); }); // Loads the last starting time of the twitch stream if it is currently live
     await startDiscord();
     logInfo("Bots initialized successfully!");
@@ -542,6 +543,7 @@ async function isTwitchChannelLive() {
         streamStartTime = Date.parse(text.substring(text.indexOf(findStr) + findStr.length, liveIndex));
         return true;
     }
+    streamStartTime = botStartTime;
     return false;
 }
 
