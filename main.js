@@ -452,7 +452,7 @@ async function playAutomatedMessage() {
                 break;
             case "sequence": // TODO: Fix double message
                 for (let i = 0; i < lines.length; i++) {
-                    sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; });
+                    if (i < lines.length - 1) { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); }
                     await awaitAutomatedMessageActive();
                     hasTimePassedSinceLastAutomatedMessage = false;
                     messagesSinceLastAutomatedMessage = 0;
