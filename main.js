@@ -404,7 +404,7 @@ async function reloadTwitchTimedMessages() {
             case "sequence":
             case "list":
                 if (line.length > 1) {
-                    automatedMessages.push({ type: line[0], file: concat(line, " ", 1) });
+                    automatedMessages.push({ type: line[0], file: concat(line, " ", "", 1) });
                     break;
                 }
                 logError(`Couldn\'t interpret automated message from config line ${i}: ${line}`);
