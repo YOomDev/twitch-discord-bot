@@ -452,11 +452,11 @@ async function playAutomatedMessage() {
                 break;
             case "sequence": // TODO: Fix double message
                 for (let i = 0; i < lines.length; i++) {
-                    if (i < lines.length - 1) { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); }
                     await awaitAutomatedMessageActive();
                     hasTimePassedSinceLastAutomatedMessage = false;
                     messagesSinceLastAutomatedMessage = 0;
                     sendMessageTwitch(twitchChannel, lines[i]);
+                    if (i < lines.length - 1) { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); }
                 }
                 break;
             case "list": // TODO: Fix messages not getting sent or loaded
