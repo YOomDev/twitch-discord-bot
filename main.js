@@ -296,7 +296,7 @@ async function parseTwitch(channel, userState, message) {
                 break;
             case "addquote":
                 if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
-                    let quote = `\n\"${concat(params, " ")}\" - ${userState.username}`;
+                    let quote = `\n\"${concat(params, " ")}\" - ${userState['display-name']}`;
                     fs.appendFile(`${__dirname}\\data\\commands\\quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${__dirname}\\data\\commands\\quote.rand`).length}`); } });
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
                 break;
@@ -327,7 +327,7 @@ async function parseTwitch(channel, userState, message) {
         if (!contains(twitchChatters, userId)) {
             twitchChatters.push(userId);
             const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
-            sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState.username));
+            sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState['display-name']));
         }
     }
 }
