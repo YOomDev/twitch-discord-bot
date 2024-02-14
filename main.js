@@ -3,7 +3,7 @@
 // Dependencies //
 //////////////////
 
-const fs = require('fs');
+const fs    = require('fs');
 const https = require('https');
 const tmi = require("tmi.js");
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
@@ -13,24 +13,24 @@ const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioRe
 // Settings //
 //////////////
 
-const color = "#FF8888"
+const color       = "#FF8888";
 const color_error = "#FF3333";
 
 // Commands
 const prefix = "!";
 
-const minutesBetweenAutomatedMessages = 5;
+const minutesBetweenAutomatedMessages      = 5;
 const messagesNeededBeforeAutomatedMessage = 5;
 
 // Loading followers
-const timePerChunk = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
+const timePerChunk   = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
 const amountPerChunk = 40; // The amount of followers requested per request to the twitch API
 
 ////////////
 // Memory //
 ////////////
 
-const botStartTime = new Date().getTime();
+const botStartTime  = new Date().getTime();
 let streamStartTime = new Date().getTime();
 
 // Requests
@@ -47,17 +47,17 @@ let messagesSinceLastAutomatedMessage = 0;
 
 // Queue's and busy booleans for all different parts
 let tasksBusy  = { discord: false, twitch: false };
-let ready = false; // Used by bots during its start to wait till its ready
+let ready   = false; // Used by bots during its start to wait till its ready
 let closing = false; // Used for if any part of the program needs to know that it is shutting down.
 
 const twitchChatters = [];
 
-const discordAllowedGuilds = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
+const discordAllowedGuilds   = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
 const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
-const adminRoles = readFile(`${__dirname}\\settings\\discordAdminRoles.settings`);
+const adminRoles             = readFile(`${__dirname}\\settings\\discordAdminRoles.settings`);
 
-const twitchChannel = readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0];
-const twitchIgnoreUsers = readFile(`${__dirname}\\settings\\twitchIgnore.settings`);
+const twitchChannel          = readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0];
+const twitchIgnoreUsers      = readFile(`${__dirname}\\settings\\twitchIgnore.settings`);
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -366,7 +366,7 @@ async function getDadJoke() {
     https.get(options, r => {
         r.setEncoding('utf8');
         r.on('data', data => { resolveRequest(id, data); });
-    }).on('error', err => { logError(err); });
+    }).on('error', err => { logError(err); resolveRequest(id, "An error occurred trying to process this command") });
     return (await getSolvedRequest(id)).toString();
 }
 
