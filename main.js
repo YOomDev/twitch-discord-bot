@@ -18,7 +18,6 @@ const color_error = "#FF3333";
 
 // Commands
 const prefix = "!";
-const adminRoles = readFile(`${__dirname}\\settings\\discordAdminRoles.settings`);
 
 const minutesBetweenAutomatedMessages = 5;
 const messagesNeededBeforeAutomatedMessage = 5;
@@ -55,6 +54,7 @@ const twitchChatters = [];
 
 const discordAllowedGuilds = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
 const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
+const adminRoles = readFile(`${__dirname}\\settings\\discordAdminRoles.settings`);
 
 const twitchChannel = readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0];
 const twitchIgnoreUsers = readFile(`${__dirname}\\settings\\twitchIgnore.settings`);
