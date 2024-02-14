@@ -8,10 +8,16 @@ const https = require('https');
 const tmi = require("tmi.js");
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const APIChatGPT = require("openai");
 
 //////////////
 // Settings //
 //////////////
+
+const filter = false; // Used to turn on response filters from code or GPTs for example
+const FILTERED = [ // A list of all the words that should be filtered if the filter is turned on
+    "test",
+];
 
 const color       = "#FF8888";
 const color_error = "#FF3333";
@@ -61,6 +67,13 @@ const twitchIgnoreUsers      = readFile(`${__dirname}\\settings\\twitchIgnore.se
 
 // Custom commands
 const commandFileTypes = ["rand"];
+
+// Response character filtering for GPT
+const capitalCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const normalCharacters = capitalCharacters.toLowerCase() + capitalCharacters;
+const specialCharacters = " .,:;[]!?(){}=-+<>~|*%^&$#@!|`\'\"/\\";
+const numbers = "0123456789";
+const allowedCharacters = capitalCharacters + normalCharacters + specialCharacters + numbers;
 
 ///////////////////////////////////
 // Basic request and resolve API //
@@ -167,6 +180,7 @@ async function start() {
         await reloadTwitchTimedMessages();
         automatedMessageManager = automatedMessagesManager();
     }
+    await initGPT();
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
     logInfo("Program stopped!");
 }
@@ -277,10 +291,20 @@ async function parseTwitch(channel, userState, message) {
             case "followage":
                 const follower = isFollower(userId);
                 sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
+                break
+            case "gpt":
+                let shouldPrompt = false;
+                if (adminLevel >= getAdminLevelTwitch(PRIME)) { shouldPrompt = true; }
+                else {
+                    const follower = isFollower(userId);
+                    if (follower >= 0) { shouldPrompt = followerData[follower].time < ((new Date().getTime()) - (5 * 24 * 60 * 60 * 1000)); }
+                }
+                if (shouldPrompt) {  }
+                else { sendMessageTwitch("You have not met the requirements to use this command."); }
                 break;
             case "commands":
             case "help":
-                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${prefix}dad ${getCustomCommands()}`);
+                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${prefix}joke ${prefix}gpt ${getCustomCommands()}`);
                 break;
             case "timer":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
@@ -392,6 +416,12 @@ function syncTwitchDiscord(userState) {
        });
     });
     return false;
+}
+
+async function getAnswerFromGPT(prompt) {
+    const response = await chatPrompt(prompt);
+    if (response.length > 0) { return response; }
+    else { return "There were problems getting a response from ChatGPT..."; }
 }
 
 async function reloadTwitchTimedMessages() {
@@ -646,6 +676,54 @@ async function getFollowers(after = "", force = false) {
     }).on('error', err => { logError(err); });
 }
 
+/////////////////
+// GPT Backend //
+/////////////////
+
+let isRunningGPT = false;
+
+// OpenAI's ChatGPT
+const configuration = new APIChatGPT.Configuration({
+    organization: readFile(`${__dirname}\\settings\\gptOrg.settings`)[0],
+    apiKey: readFile(`${__dirname}\\settings\\gptKey.settings`)[0],
+});
+const openai = new APIChatGPT.OpenAIApi(configuration);
+
+async function initGPT() {
+    logInfo("Initializing ChatGPT connection...");
+
+    // Load OpenAI ChatGPT connection
+    const response = await openai.listEngines();
+    if (response.status !== 200) { logWarning("Failed to connect to OpenAI\'s ChatGPT..."); }
+    else { logInfo("Managed to connect to OpenAI\'s ChatGPT!"); isRunningGPT = true; }
+}
+
+async function chatPrompt(prompt) {
+    const messages = [{ role: "user", content: prompt }];
+    const completion = await openai.createChatCompletion({  model: "gpt-3.5-turbo", messages: messages }).catch(err => { logError(err); });
+    if (!completion) { logError("Couldn\'t get a response to prompt!"); return ""; } // Needed after the chat completion bugs out and doesn't return anything
+    if (completion.status !== 200) { logError(completion.data.error.message); return ""; }
+    const response = completion.data.choices[0].message.content;
+    return filterResponse(cleanResponse(response));
+}
+
+// Used to filter the responses if the setting is turned on so that it can be used in situations where the AI is not allowed to say certain things
+function filterResponse(response) {
+    if (filter) {
+        if (containsFromList(response, FILTERED, true)) {
+            // TODO: replace all the wrong words
+        }
+    }
+    return response;
+}
+
+// used to make sure the response from the GPT doesn't contain invalid characters
+function cleanResponse(response) {
+    let result = "";
+    for (let i = 0; i < response.length; i++) { if (allowedCharacters.indexOf(response[i]) >= 0) { result += response[i]; } }
+    return result.substring(findCapitalCharacter(result), result.length);
+}
+
 /////////////////////
 // Discord backend //
 /////////////////////
@@ -759,6 +837,16 @@ function concat(list, separator = "", prefix = "", start = 0) {
 function getTimeString(date = new Date()) { return date.toLocaleTimeString(); }
 
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (equals(array[i], value)) { return true; } } return false; }
+
+function containsFromList(txt, list, ignoreCase = false) {
+    for (let i = 0; i < list.length; i++) {
+        if (txt.indexOf(list[i])) { return true; }
+        else if (ignoreCase) { if (txt.toLowerCase().indexOf(list[i].toLowerCase())) { return true; } }
+    }
+    return false;
+}
+
+function findCapitalCharacter(str, start = 0) { for (let i = start; i < str.length; i++) { if (capitalCharacters.indexOf(str[i]) >= 0) { return i; } } return start; }
 
 function logError(err)   { console.error(`[${getTimeString()}] ERROR:\t`, err ); }
 function logWarning(err) { console.error(`[${getTimeString()}] Warning:`, err ); }
