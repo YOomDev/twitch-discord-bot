@@ -441,6 +441,7 @@ async function automatedMessagesManager() {
 }
 
 async function playAutomatedMessage() {
+    if (!runMessages) { return; }
     if (isChatActive()) {
         if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
         const message = automatedMessages[currentAutomatedMessage];
