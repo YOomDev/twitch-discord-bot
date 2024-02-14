@@ -415,7 +415,6 @@ async function reloadTwitchTimedMessages() {
     }
     runMessages = false;
     await stopAutomatedMessagesManager();
-    logData(automatedMessages);
     automatedMessageManager = automatedMessagesManager(); // Start new messages manager
 }
 
@@ -446,7 +445,6 @@ async function playAutomatedMessage() {
         if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
         const message = automatedMessages[currentAutomatedMessage];
         let lines = readFile(`${__dirname}\\automated\\messages\\${message.file}.txt`);
-        logData(lines); // TODO: Debug
         switch (message.type) {
             case "message":
                 sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
