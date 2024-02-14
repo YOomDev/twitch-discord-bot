@@ -446,6 +446,7 @@ async function playAutomatedMessage() {
         if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
         const message = automatedMessages[currentAutomatedMessage];
         let lines = readFile(`${__dirname}\\automated\\messages\\${message.file}.txt`);
+        logData(lines); // TODO: Debug
         switch (message.type) {
             case "message":
                 sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
@@ -461,8 +462,8 @@ async function playAutomatedMessage() {
                 break;
             case "list": // TODO: Fix messages not getting sent or loaded
                 for (let i = 0; i < lines.length; i++) {
-                    await sleep(5);
                     sendMessageTwitch(twitchChannel, lines[i]);
+                    if (i < lines.length - 1) {await sleep(5); }
                 }
                 break;
             default:
