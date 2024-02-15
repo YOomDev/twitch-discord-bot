@@ -302,7 +302,7 @@ async function parseTwitch(channel, userState, message) {
                 if (shouldPrompt) {
                     const prompt = concat(params);
                     const response = await getAnswerFromGPT(prompt);
-                    sendMessageTwitch(response);
+                    sendMessageTwitch(channel, response);
                 }
                 else { sendMessageTwitch("You have not met the requirements to use this command."); }
                 break;
