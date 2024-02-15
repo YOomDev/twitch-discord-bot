@@ -299,7 +299,11 @@ async function parseTwitch(channel, userState, message) {
                     const follower = isFollower(userId);
                     if (follower >= 0) { shouldPrompt = followerData[follower].time < ((new Date().getTime()) - (5 * 24 * 60 * 60 * 1000)); }
                 }
-                if (shouldPrompt) {  }
+                if (shouldPrompt) {
+                    const prompt = concat(params);
+                    const response = await getAnswerFromGPT(prompt);
+                    sendMessageTwitch(response);
+                }
                 else { sendMessageTwitch("You have not met the requirements to use this command."); }
                 break;
             case "commands":
