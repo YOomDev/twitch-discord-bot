@@ -135,7 +135,7 @@ function getCustomCommandFiles() {
         const parts = filesInCommandFolder[i].split(".");
         if (parts.length === 2) {
             for (let j = 0; j < commandFileTypes.length; j++) {
-                if (equals(parts[parts.length - 1].toLowerCase(), (`${commandFileTypes[j]}`).toLowerCase())) {
+                if (equals(parts[parts.length - 1].toLowerCase(), commandFileTypes[j].toLowerCase())) {
                     commandFiles.push(filesInCommandFolder[i]);
                     break;
                 }
