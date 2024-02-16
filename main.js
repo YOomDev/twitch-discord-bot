@@ -39,6 +39,7 @@ const amountPerChunk = 40; // The amount of followers requested per request to t
 const settingsFolder          = `${__dirname}\\settings\\`;
 const verifyFolder            = `${__dirname}\\messages\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
+const commandsFolder          = `${__dirname}\\data\\commands\\`
 
 // Uptime
 const botStartTime  = new Date().getTime();
@@ -129,7 +130,7 @@ function getCustomCommands() {
 }
 
 function getCustomCommandFiles() {
-    const filesInCommandFolder = getFilenamesFromFolder(`${__dirname}\\data\\commands`);
+    const filesInCommandFolder = getFilenamesFromFolder(commandsFolder);
     const commandFiles = [];
     for (let i = 0; i < filesInCommandFolder.length; i++) {
         const parts = filesInCommandFolder[i].split(".");
@@ -146,7 +147,6 @@ function getCustomCommandFiles() {
 }
 
 function parseCustomCommand(command) {
-    const path = `${__dirname}\\data\\commands`;
     const commandFiles = getCustomCommandFiles();
     let result = "";
     for (let i = 0; i < commandFiles.length; i++) {
@@ -157,7 +157,7 @@ function parseCustomCommand(command) {
         if (equals(command.toLowerCase(), customCommand)) {
             switch(type) {
                 case "rand":
-                    const options = readFile(`${path}\\${commandFiles[i]}`);
+                    const options = readFile(`${commandsFolder}\\${commandFiles[i]}`);
                     result = options.length < 1 ? "ERROR" : options[randomInt(options.length)];
                     break;
                 default:
@@ -208,7 +208,7 @@ async function stop() {
     }
 }
 
-function parseDiscord(message) {
+async function parseDiscord(message) {
     if (message.content.startsWith(prefix)) { // Check if the message is a command
         // Grab needed info for the commands
         const params = message.content.substring(prefix.length, message.content.length).split(" ");
@@ -224,11 +224,40 @@ function parseDiscord(message) {
                 logInfo("Discord Debug-info:");
                 logData(message);
                 break;
+            case "commands":
             case "help":
-                sendEmbedDiscord(message.channel, "Commands:", "...", color, [
+                const fields = [
                     [`${prefix}help`, "Displays the help page", false],
-                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false]
-                ]);
+                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false],
+                    [`${prefix}joke`, "Tells a joke", false],
+                ];
+                sendEmbedDiscord(message.channel, "Commands:", "...", color, fields);
+                break;
+            case "dad":
+            case "joke":
+                sendEmbedDiscord(message.channel, "Joke", await getDadJoke());
+                break;
+            case "alarm":
+            case "timer":
+                if (isAdminDiscord(member)) {
+                    if (params.length > 1) {
+                        const name = params[0];
+                        const number = parseInt(params[1]);
+                        if (!isNaN(number)) {
+                            sleep(60 * number).then(_ => { sendEmbedDiscord(message.channel, "Timer ended", `Timer \'${name}\' ended`.toString()); playAudio(`${name}.mp3`).catch(err => logError(err)) });
+                        } else { sendEmbedDiscord(message.channel, "", "Second argument is not a number.", color_error);}
+                    } else { sendEmbedDiscord(message.channel, "", "Not enough arguments given.", color_error); }
+                } else { sendEmbedDiscord(message.channel, "", "You can only use this command if you are at least a admin!", color_error); }
+                break;
+            case "gpt":
+                let shouldPrompt = false;
+                if (isAdminDiscord(member)) { shouldPrompt = true; }
+                if (shouldPrompt) {
+                    const prompt = concat(params);
+                    const response = await getAnswerFromGPT(prompt);
+                    sendEmbedDiscord(message.channel, "GPT-Reply", response);
+                }
+                else { sendEmbedDiscord(message.channel, "No permission", "You have not met the requirements to use this command.", color_error); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
@@ -239,7 +268,6 @@ function parseDiscord(message) {
                 break;
             case "stop":
                 if (isAdminDiscord(member)) { stop().catch(err => { logError(err); }); }
-                else { sendEmbedDiscord(message.channel, "No permission", "You do not have the right permissions to use this command.", color_error); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
@@ -312,12 +340,13 @@ async function parseTwitch(channel, userState, message) {
                     const response = await getAnswerFromGPT(prompt);
                     sendMessageTwitch(channel, response);
                 }
-                else { sendMessageTwitch("You have not met the requirements to use this command."); }
+                else { sendMessageTwitch(channel, "You have not met the requirements to use this command."); }
                 break;
             case "commands":
             case "help":
                 sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${prefix}joke ${prefix}gpt ${getCustomCommands()}`);
                 break;
+            case "alarm":
             case "timer":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     if (params.length > 1) {
