@@ -15,9 +15,14 @@ const APIChatGPT = require("openai");
 //////////////
 
 const filter = false; // Used to turn on response filters from code or GPTs for example
-const FILTERED = [ // A list of all the words that should be filtered if the filter is turned on
+const filterWords = [ // A list of all the words that should be filtered if the filter is turned on
     "test",
+    "test 2",
+    "test3",
+    "testfour",
 ];
+const FILTERED = sortByLength(filterWords);
+// logInfo(filterResponse("Your test results have come back in for test 2 and 3.")); // TODO: fix some parts being filter triggered multiple times
 
 const color       = "#FF8888";
 const color_error = "#FF3333";
@@ -752,7 +757,26 @@ async function chatPrompt(prompt) {
 function filterResponse(response) {
     if (filter) {
         if (containsFromList(response, FILTERED, true)) {
-            // TODO: replace all the wrong words
+            let tmp = response.toLowerCase();
+            let index = -1;
+            const replace = [];
+            for (let i = 0; i < FILTERED.length; i++) {
+                while (true) {
+                    index = tmp.indexOf(FILTERED[i].toLowerCase(), index + 1);
+                    if (index === -1) { break; }
+                    for (let j = index; j < index + FILTERED[i].length; j++) { replace.push({ start: index, end: index + FILTERED[i].length}); }
+                }
+            }
+            logData(replace);
+            let result = "";
+            for (let i = 0; i < response.length; i++) {
+                let shouldReplace = false;
+                for (let j = 0; j < replace.length; j ++) {
+                    if (i < replace[j].end && i >= replace[j].start) { shouldReplace = true; break; }
+                }
+                result += shouldReplace ? '*' : response[i];
+            }
+            return result;
         }
     }
     return response;
@@ -886,6 +910,27 @@ function containsFromList(txt, list, ignoreCase = false) {
         else if (ignoreCase) { if (txt.toLowerCase().indexOf(list[i].toLowerCase())) { return true; } }
     }
     return false;
+}
+
+function sortByLength(list) {
+    const tmp = [];
+    for (let i = 0; i < list.length; i++) { tmp.push(list[i]); } // Make a static copy
+    const result = [];
+    let index;
+    let max;
+    while (tmp.length) {
+        index = 0;
+        max = tmp[index].length;
+        for (let i = 1; i < tmp.length; i++) {
+            if (tmp[i].length > max) {
+                max = tmp[i].length;
+                index = i;
+            }
+        }
+        result.push(tmp[index]);
+        tmp.splice(index, 1);
+    }
+    return result;
 }
 
 function findCapitalCharacter(str, start = 0) { for (let i = start; i < str.length; i++) { if (capitalCharacters.indexOf(str[i]) >= 0) { return i; } } return start; }
