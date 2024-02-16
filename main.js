@@ -14,7 +14,7 @@ const APIChatGPT = require("openai");
 // Settings //
 //////////////
 
-const filter = true; // Used to turn on response filters from code or GPTs for example
+const filter = false; // Used to turn on response filters from code or GPTs for example
 const filterWords = [ // A list of all the words that should be filtered if the filter is turned on
     "test",
     "test 2",
@@ -766,7 +766,6 @@ function filterResponse(response) {
                     replace.push({ start: index, end: index + FILTERED[i].length});
                 }
             }
-            logData(replace);
             let result = "";
             for (let i = 0; i < response.length; i++) {
                 let shouldReplace = false;
