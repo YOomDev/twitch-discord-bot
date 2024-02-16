@@ -36,8 +36,8 @@ const amountPerChunk = 40; // The amount of followers requested per request to t
 // Memory //
 ////////////
 
-const settingsFolder = `${__dirname}\\settings\\`;
-const verifyFolder = `${__dirname}\\messages\\`;
+const settingsFolder          = `${__dirname}\\settings\\`;
+const verifyFolder            = `${__dirname}\\messages\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
 
 // Uptime
@@ -75,9 +75,9 @@ const commandFileTypes = ["rand"];
 
 // Response character filtering for GPT
 const capitalCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const normalCharacters = capitalCharacters.toLowerCase() + capitalCharacters;
+const normalCharacters  = capitalCharacters.toLowerCase() + capitalCharacters;
 const specialCharacters = " .,:;[]!?(){}=-+<>~|*%^&$#@!|`\'\"/\\";
-const numbers = "0123456789";
+const numbers           = "0123456789";
 const allowedCharacters = capitalCharacters + normalCharacters + specialCharacters + numbers;
 
 ///////////////////////////////////
@@ -96,7 +96,11 @@ async function getSolvedRequest(id){
         await sleep(0.5);
         for (let i = 0; i < requests.length; i++) {
             if (requests[i].id === id) {
-                if (requests[i].resolved) { return requests[i].data; }
+                if (requests[i].resolved) {
+                    const returnData = requests[i].data;
+                    requests.splice(i, 1);
+                    return returnData;
+                }
                 break;
             }
         }
