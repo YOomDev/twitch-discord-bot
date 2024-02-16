@@ -178,7 +178,6 @@ async function start() {
     logInfo("Bots initialized successfully!");
     if (runMessages && automatedMessageManager === 0) {
         await reloadTwitchTimedMessages();
-        automatedMessageManager = automatedMessagesManager();
     }
     await initGPT();
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
