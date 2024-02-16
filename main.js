@@ -805,6 +805,7 @@ async function startDiscord() {
 async function stopDiscord() { clientDiscord.destroy(); await sleep(1); tasksBusy.discord = false; }
 
 function sendEmbedDiscord(channel, title, description, col = color, fields = []) {
+    if (!channel || !title || ! description) { logError("Tried sending a discord message without specifying the required arguments!"); return; }
     const embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
     for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
     channel.send({ embeds: [embed] });
