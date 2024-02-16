@@ -36,6 +36,11 @@ const amountPerChunk = 40; // The amount of followers requested per request to t
 // Memory //
 ////////////
 
+const settingsFolder = `${__dirname}\\settings\\`;
+const verifyFolder = `${__dirname}\\messages\\`;
+const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
+
+// Uptime
 const botStartTime  = new Date().getTime();
 let streamStartTime = new Date().getTime();
 
@@ -44,7 +49,7 @@ let lastRequestId = -1;
 const requests = [];
 
 // automated messages
-let runMessages = equals(readFile(`${__dirname}\\settings\\autoMessageOnStart.settings`)[0].toLowerCase(), "true");
+let runMessages = equals(readFile(`${settingsFolder}autoMessageOnStart.settings`)[0].toLowerCase(), "true");
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0; // container for the async function runner automatedMessagesManager()
 const automatedMessages = [];
@@ -58,12 +63,12 @@ let closing = false; // Used for if any part of the program needs to know that i
 
 const twitchChatters = [];
 
-const discordAllowedGuilds   = readFile(`${__dirname}\\settings\\discordGuilds.settings`);
-const discordAllowedChannels = readFile(`${__dirname}\\settings\\discordChannels.settings`);
-const adminRoles             = readFile(`${__dirname}\\settings\\discordAdminRoles.settings`);
+const discordAllowedGuilds   = readFile(`${settingsFolder}discordGuilds.settings`);
+const discordAllowedChannels = readFile(`${settingsFolder}discordChannels.settings`);
+const adminRoles             = readFile(`${settingsFolder}discordAdminRoles.settings`);
 
-const twitchChannel          = readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[0];
-const twitchIgnoreUsers      = readFile(`${__dirname}\\settings\\twitchIgnore.settings`);
+const twitchChannel          = readFile(`${settingsFolder}twitchUserInfo.settings`)[0];
+const twitchIgnoreUsers      = readFile(`${settingsFolder}twitchIgnore.settings`);
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -248,7 +253,7 @@ async function parseTwitch(channel, userState, message) {
     const userId = userState['user-id'];
     if (message.startsWith(prefix)) { // Check if the message is a command
         // Gather the needed info for the command
-        const params = message.substring(prefix.length, message.length).split(" ");
+        const params = message.trim().substring(prefix.length, message.length).split(" ");
         const command = params[0].toLowerCase();
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
@@ -352,7 +357,7 @@ async function parseTwitch(channel, userState, message) {
         messagesSinceLastAutomatedMessage += 1;
         if (!contains(twitchChatters, userId)) {
             twitchChatters.push(userId);
-            const lines = readFile(`${__dirname}\\automated\\messages\\welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
+            const lines = readFile(`${automatedMessagesFolder}welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
             sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState['display-name']));
         }
     }
@@ -360,7 +365,7 @@ async function parseTwitch(channel, userState, message) {
 
 function createVerify(discordId) {
     const code = `${discordId}-${Date.now()}`;
-    const path = `${__dirname}\\verify\\discord\\${discordId}.txt`;
+    const path = `${verifyFolder}discord\\${discordId}.txt`;
     if (sumLength(readFile(path))) { return ""; } // return empty if verify-code has already been requested
     writeLineToFile(path, code);
     return code;
@@ -370,8 +375,8 @@ function verify(twitchId, code) {
     if (code.indexOf("-") < 1) { return false; } // Make sure it is an actual verification-code
 
     const discordId   = code.split("-")[0];
-    const pathDiscord = `${__dirname}\\verify\\discord\\${discordId}.txt`;
-    const pathTwitch  = `${__dirname}\\verify\\twitch\\${twitchId}.txt`;
+    const pathDiscord = `${verifyFolder}discord\\${discordId}.txt`;
+    const pathTwitch  = `${verifyFolder}twitch\\${twitchId}.txt`;
 
     const read = readFile(pathDiscord);
     if (read.length === 1) { // Check if there's a line used, due to how it formats, the first line is the code, and thus it can be checked to see if there was a code requested
@@ -398,13 +403,13 @@ async function getDadJoke() {
 }
 
 // File structure: name: discord-id; line1: verify_code; line2: twitch-id (if verified)
-function isVerifiedDiscord(discordId) { return readFile(`${__dirname}\\verify\\discord\\${discordId}.txt`).length > 1; }
+function isVerifiedDiscord(discordId) { return readFile(`${verifyFolder}discord\\${discordId}.txt`).length > 1; }
 
 // File structure: name: twitch-id line1: discord-id (if verified)
-function isVerifiedTwitch(twitchId  ) { return readFile(`${__dirname}\\verify\\twitch\\${twitchId}.txt`).length > 0; }
+function isVerifiedTwitch(twitchId  ) { return readFile(`${verifyFolder}twitch\\${twitchId}.txt`).length > 0; }
 
 function syncTwitchDiscord(userState) {
-    const discordId = parseInt(`${readFile(`${__dirname}\\verify\\twitch\\${userState['id']}.txt`)[0]}`);
+    const discordId = parseInt(`${readFile(`${verifyFolder}twitch\\${userState['id']}.txt`)[0]}`);
     clientDiscord.guilds.cache.forEach(guild => {
        guild.members.cache.forEach(member => {
            if (equals(discordId, `${member.id}`)) {
@@ -428,7 +433,7 @@ async function getAnswerFromGPT(prompt) {
 }
 
 async function reloadTwitchTimedMessages() {
-    const config = readFile(`${__dirname}\\automated\\messages\\config.txt`);
+    const config = readFile(`${automatedMessagesFolder}config.txt`);
     for (let i = 0; i < config.length; i++) {
         let line = config[i].split(" ");
         switch (line[0]) {
@@ -478,12 +483,12 @@ async function playAutomatedMessage() {
     if (isChatActive()) {
         if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
         const message = automatedMessages[currentAutomatedMessage];
-        let lines = readFile(`${__dirname}\\automated\\messages\\${message.file}.txt`);
+        let lines = readFile(`${automatedMessagesFolder}${message.file}.txt`);
         switch (message.type) {
             case "message":
                 sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
                 break;
-            case "sequence": // TODO: Fix double message
+            case "sequence":
                 for (let i = 0; i < lines.length; i++) {
                     await awaitAutomatedMessageActive();
                     hasTimePassedSinceLastAutomatedMessage = false;
@@ -492,7 +497,7 @@ async function playAutomatedMessage() {
                     if (i < lines.length - 1) { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); }
                 }
                 break;
-            case "list": // TODO: Fix messages not getting sent or loaded
+            case "list":
                 for (let i = 0; i < lines.length; i++) {
                     sendMessageTwitch(twitchChannel, lines[i]);
                     if (i < lines.length - 1) {await sleep(5); }
@@ -537,8 +542,8 @@ const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
     identity: {
-        username: readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[1],
-        password: `oauth:${readFile(`${__dirname}\\settings\\twitchToken.settings`)[0]}`
+        username: readFile(`${settingsFolder}twitchUserInfo.settings`)[1],
+        password: `oauth:${readFile(`${settingsFolder}twitchToken.settings`)[0]}`
     },
     channels: [`#${twitchChannel}`]
 });
@@ -585,7 +590,7 @@ async function isTwitchChannelLive() {
 }
 
 function getUserTypeTwitch(userState) {
-    if (equals(userState.username, readFile(`${__dirname}\\settings\\twitchUserInfo.settings`)[2])) { return DEVELOPER; }
+    if (equals(userState.username, readFile(`${settingsFolder}twitchUserInfo.settings`)[2])) { return DEVELOPER; }
     if (userState.badges) { if (userState.badges['broadcaster']) { return BROADCASTER; } }
     if (userState.mod) { return MODERATOR  ; }
     if (userState.badges) { if (userState.badges['vip']) { return VIP; } }
@@ -661,12 +666,12 @@ function hasLoadedAllFollowers() { return followerData.length > 0; }
 
 async function getFollowers(after = "", force = false) {
     if (!force) { if (parsedData.length || parseData.length) { return; } }
-    const id = readFile(`${__dirname}\\settings\\twitchId.settings`)[0];
+    const id = readFile(`${settingsFolder}twitchId.settings`)[0];
     const options = {
         hostname: 'api.twitch.tv',
-        path: `/helix/channels/followers?broadcaster_id=${readFile(`${__dirname}\\settings\\twitchRoom.settings`)[0]}&first=${amountPerChunk}${after.length < 1 ? "" : `&after=${after}`}`,
+        path: `/helix/channels/followers?broadcaster_id=${readFile(`${settingsFolder}twitchRoom.settings`)[0]}&first=${amountPerChunk}${after.length < 1 ? "" : `&after=${after}`}`,
         headers: {
-            Authorization: `Bearer ${readFile(`${__dirname}\\settings\\twitchToken.settings`)[0]}`,
+            Authorization: `Bearer ${readFile(`${settingsFolder}twitchToken.settings`)[0]}`,
             'Client-ID': id
         }
     }
@@ -687,8 +692,8 @@ let isRunningGPT = false;
 
 // OpenAI's ChatGPT
 const configuration = new APIChatGPT.Configuration({
-    organization: readFile(`${__dirname}\\settings\\gptOrg.settings`)[0],
-    apiKey: readFile(`${__dirname}\\settings\\gptKey.settings`)[0],
+    organization: readFile(`${settingsFolder}gptOrg.settings`)[0],
+    apiKey: readFile(`${settingsFolder}gptKey.settings`)[0],
 });
 const openai = new APIChatGPT.OpenAIApi(configuration);
 
@@ -758,7 +763,7 @@ async function playAudio(path = "") {
 }
 
 clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
-    if (oldState.member.roles.cache.some(role => { return equals(role.name, readFile(`${__dirname}\\settings\\discord.settings`)[0]); })) {
+    if (oldState.member.roles.cache.some(role => { return equals(role.name, readFile(`${settingsFolder}discord.settings`)[0]); })) {
         if (newState.channel !== null) {
             logInfo(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
 
@@ -792,7 +797,7 @@ let discord = 0;
 async function startDiscord() {
     ready = false;
     tasksBusy.discord = true;
-    discord = clientDiscord.login(readFile(`${__dirname}\\settings\\discordToken.settings`)[0]).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
+    discord = clientDiscord.login(readFile(`${settingsFolder}discordToken.settings`)[0]).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
     ready = false;
 }
