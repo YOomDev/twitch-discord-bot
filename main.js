@@ -575,7 +575,7 @@ async function loadFollowers() {
 
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
-function sendMessageTwitch(channel, msg) { if (msg.length) { clientTwitch.say(channel, msg); } }
+function sendMessageTwitch(channel, msg) { if (msg) { clientTwitch.say(channel, msg); } else { logError("Tried sending a message but either the message or the channel was missing from the specified arguments!"); } }
 
 async function isTwitchChannelLive() {
     const text = await (await fetch(`https://twitch.tv/${twitchChannel}`).catch(err => { logError(err); return { text: async function() { return ""; }}})).text();
