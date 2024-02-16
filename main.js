@@ -14,7 +14,7 @@ const APIChatGPT = require("openai");
 // Settings //
 //////////////
 
-const filter = false; // Used to turn on response filters from code or GPTs for example
+const filter = true; // Used to turn on response filters from code or GPTs for example
 const filterWords = [ // A list of all the words that should be filtered if the filter is turned on
     "test",
     "test 2",
@@ -22,7 +22,6 @@ const filterWords = [ // A list of all the words that should be filtered if the 
     "testfour",
 ];
 const FILTERED = sortByLength(filterWords);
-// logInfo(filterResponse("Your test results have come back in for test 2 and 3.")); // TODO: fix some parts being filter triggered multiple times
 
 const color       = "#FF8888";
 const color_error = "#FF3333";
@@ -764,7 +763,7 @@ function filterResponse(response) {
                 while (true) {
                     index = tmp.indexOf(FILTERED[i].toLowerCase(), index + 1);
                     if (index === -1) { break; }
-                    for (let j = index; j < index + FILTERED[i].length; j++) { replace.push({ start: index, end: index + FILTERED[i].length}); }
+                    replace.push({ start: index, end: index + FILTERED[i].length});
                 }
             }
             logData(replace);
