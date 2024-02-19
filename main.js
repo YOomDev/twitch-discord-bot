@@ -29,8 +29,8 @@ const color_error = "#FF3333";
 // Commands
 const prefix = "!";
 
-const minutesBetweenAutomatedMessages      = 5;
-const messagesNeededBeforeAutomatedMessage = 5;
+const minutesBetweenAutomatedMessages      = getSettingInt(`minutesAutoMsg`, 0, 10);
+const messagesNeededBeforeAutomatedMessage = getSettingInt(`countAutoMsg`, 0, 10);
 
 // Loading followers
 const timePerChunk   = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
