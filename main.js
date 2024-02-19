@@ -54,7 +54,7 @@ let lastRequestId = -1;
 const requests = [];
 
 // automated messages
-let runMessages = equals(readFile(`${settingsFolder}autoMessageOnStart.settings`)[0].toLowerCase(), "true");
+let runMessages = equals(getSettingString(`autoMessageOnStart`).toLowerCase(), "true");
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0; // container for the async function runner automatedMessagesManager()
 const automatedMessages = [];
@@ -68,12 +68,12 @@ let closing = false; // Used for if any part of the program needs to know that i
 
 const twitchChatters = [];
 
-const discordAllowedGuilds   = readFile(`${settingsFolder}discordGuilds.settings`);
-const discordAllowedChannels = readFile(`${settingsFolder}discordChannels.settings`);
-const adminRoles             = readFile(`${settingsFolder}discordAdminRoles.settings`);
+const discordAllowedGuilds   = getSetting(`discordGuilds`);
+const discordAllowedChannels = getSetting(`discordChannels`);
+const adminRoles             = getSetting(`discordAdminRoles`);
 
-const twitchChannel          = readFile(`${settingsFolder}twitchUserInfo.settings`)[0];
-const twitchIgnoreUsers      = readFile(`${settingsFolder}twitchIgnore.settings`);
+const twitchChannel          = getSettingString(`twitchUserInfo`);
+const twitchIgnoreUsers      = getSetting(`twitchIgnore`);
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -122,6 +122,26 @@ function resolveRequest(id, data) {
     }
 }
 
+//////////////
+// Settings //
+//////////////
+
+function getSetting(setting) {
+    return readFile(`${settingsFolder}${setting}.settings`);
+}
+
+function getSettingInt(setting, index = 0, returnOnError = 0) {
+    const number = parseInt(getSetting(setting)[index]);
+    if (!isNaN(number)) { return returnOnError; }
+    return number;
+}
+
+function getSettingString(setting, index = 0, returnOnDefault = "") {
+    const value = getSetting(setting)[index];
+    if (!value) { return returnOnDefault; }
+    return value;
+}
+
 /////////////////////
 // Custom commands //
 /////////////////////
@@ -161,7 +181,7 @@ function parseCustomCommand(command) {
         if (equals(command.toLowerCase(), customCommand)) {
             switch(type) {
                 case "rand":
-                    const options = readFile(`${commandsFolder}\\${commandFiles[i]}`);
+                    const options = readFile(`${commandsFolder}${commandFiles[i]}`);
                     result = options.length < 1 ? "ERROR" : options[randomInt(options.length)];
                     break;
                 default:
@@ -365,7 +385,7 @@ async function parseTwitch(channel, userState, message) {
             case "addquote":
                 if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
                     let quote = `\n\"${concat(params, " ")}\" - ${userState['display-name']}`;
-                    fs.appendFile(`${__dirname}\\data\\commands\\quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${__dirname}\\data\\commands\\quote.rand`).length}`); } });
+                    fs.appendFile(`${commandsFolder}quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${commandsFolder}quote.rand`).length}`); } });
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
                 break;
             case "sync":
@@ -579,8 +599,8 @@ const clientTwitch = new tmi.Client({
     options: { debug: true },
     connection: { reconnect: true, secure: true },
     identity: {
-        username: readFile(`${settingsFolder}twitchUserInfo.settings`)[1],
-        password: `oauth:${readFile(`${settingsFolder}twitchToken.settings`)[0]}`
+        username: getSettingString(`twitchUserInfo`, 1),
+        password: `oauth:${getSettingString(`twitchToken`)}`
     },
     channels: [`#${twitchChannel}`]
 });
@@ -627,7 +647,7 @@ async function isTwitchChannelLive() {
 }
 
 function getUserTypeTwitch(userState) {
-    if (equals(userState.username, readFile(`${settingsFolder}twitchUserInfo.settings`)[2])) { return DEVELOPER; }
+    if (equals(userState.username, getSettingString(`twitchUserInfo`, 2))) { return DEVELOPER; }
     if (userState.badges) { if (userState.badges['broadcaster']) { return BROADCASTER; } }
     if (userState.mod) { return MODERATOR  ; }
     if (userState.badges) { if (userState.badges['vip']) { return VIP; } }
@@ -703,12 +723,12 @@ function hasLoadedAllFollowers() { return followerData.length > 0; }
 
 async function getFollowers(after = "", force = false) {
     if (!force) { if (parsedData.length || parseData.length) { return; } }
-    const id = readFile(`${settingsFolder}twitchId.settings`)[0];
+    const id = getSettingString(`twitchId`);
     const options = {
         hostname: 'api.twitch.tv',
-        path: `/helix/channels/followers?broadcaster_id=${readFile(`${settingsFolder}twitchRoom.settings`)[0]}&first=${amountPerChunk}${after.length < 1 ? "" : `&after=${after}`}`,
+        path: `/helix/channels/followers?broadcaster_id=${getSettingString(`twitchRoom`)}&first=${amountPerChunk}${after.length < 1 ? "" : `&after=${after}`}`,
         headers: {
-            Authorization: `Bearer ${readFile(`${settingsFolder}twitchToken.settings`)[0]}`,
+            Authorization: `Bearer ${getSettingString(`twitchToken`)}`,
             'Client-ID': id
         }
     }
@@ -729,8 +749,8 @@ let isRunningGPT = false;
 
 // OpenAI's ChatGPT
 const configuration = new APIChatGPT.Configuration({
-    organization: readFile(`${settingsFolder}gptOrg.settings`)[0],
-    apiKey: readFile(`${settingsFolder}gptKey.settings`)[0],
+    organization: getSettingString(`gptOrg`),
+    apiKey: getSettingString(`gptKey`),
 });
 const openai = new APIChatGPT.OpenAIApi(configuration);
 
@@ -818,7 +838,7 @@ async function playAudio(path = "") {
 }
 
 clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
-    if (oldState.member.roles.cache.some(role => { return equals(role.name, readFile(`${settingsFolder}discord.settings`)[0]); })) {
+    if (oldState.member.roles.cache.some(role => { return equals(role.name, getSettingString(`discord`)); })) {
         if (newState.channel !== null) {
             logInfo(`User ${oldState.member.user.username} joined channel ${newState.channel.id}`);
 
@@ -852,7 +872,7 @@ let discord = 0;
 async function startDiscord() {
     ready = false;
     tasksBusy.discord = true;
-    discord = clientDiscord.login(readFile(`${settingsFolder}discordToken.settings`)[0]).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
+    discord = clientDiscord.login(getSettingString(`discordToken`)).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
     while (!ready) { await sleep(0.25); }
     ready = false;
 }
