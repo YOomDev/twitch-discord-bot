@@ -132,7 +132,7 @@ function getSetting(setting) {
 
 function getSettingInt(setting, index = 0, returnOnError = 0) {
     const number = parseInt(getSetting(setting)[index]);
-    if (!isNaN(number)) { return returnOnError; }
+    if (isNaN(number)) { return returnOnError; }
     return number;
 }
 
