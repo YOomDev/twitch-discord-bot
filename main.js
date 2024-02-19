@@ -29,9 +29,6 @@ const color_error = "#FF3333";
 // Commands
 const prefix = "!";
 
-const minutesBetweenAutomatedMessages      = getSettingInt(`minutesAutoMsg`, 0, 10);
-const messagesNeededBeforeAutomatedMessage = getSettingInt(`countAutoMsg`, 0, 10);
-
 // Loading followers
 const timePerChunk   = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
 const amountPerChunk = 40; // The amount of followers requested per request to the twitch API
@@ -55,6 +52,8 @@ const requests = [];
 
 // automated messages
 let runMessages = equals(getSettingString(`autoMessageOnStart`).toLowerCase(), "true");
+const minutesBetweenAutomatedMessages      = getSettingInt(`minutesAutoMsg`, 0, 10);
+const messagesNeededBeforeAutomatedMessage = getSettingInt(`countAutoMsg`, 0, 10);
 let currentAutomatedMessage = 0;
 let automatedMessageManager = 0; // container for the async function runner automatedMessagesManager()
 const automatedMessages = [];
@@ -126,9 +125,7 @@ function resolveRequest(id, data) {
 // Settings //
 //////////////
 
-function getSetting(setting) {
-    return readFile(`${settingsFolder}${setting}.settings`);
-}
+function getSetting(setting) { return readFile(`${settingsFolder}${setting}.settings`); }
 
 function getSettingInt(setting, index = 0, returnOnError = 0) {
     const number = parseInt(getSetting(setting)[index]);
