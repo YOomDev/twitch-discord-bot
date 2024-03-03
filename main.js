@@ -40,7 +40,7 @@ const amountPerChunk = 40; // The amount of followers requested per request to t
 const settingsFolder          = `${__dirname}\\settings\\`;
 const verifyFolder            = `${__dirname}\\messages\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
-const commandsFolder          = `${__dirname}\\data\\commands\\`
+const commandsFolder          = `${__dirname}\\data\\commands\\`;
 
 // Uptime
 const botStartTime  = new Date().getTime();
