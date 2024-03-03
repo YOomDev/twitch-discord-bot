@@ -74,6 +74,11 @@ const adminRoles             = getSetting(`discordAdminRoles`);
 const twitchChannel          = getSettingString(`twitchUserInfo`);
 const twitchIgnoreUsers      = getSetting(`twitchIgnore`);
 
+// Words replacement
+const replaceFrom = getSetting(`wordsFrom`);
+const replaceTo   = getSetting(`wordsTo`);
+
+
 // Custom commands
 const commandFileTypes = ["rand"];
 
@@ -629,7 +634,7 @@ async function loadFollowers() {
 
 async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch = false; }
 
-function sendMessageTwitch(channel, msg) { if (msg) { clientTwitch.say(channel, msg); } else { logError("Tried sending a message but either the message or the channel was missing from the specified arguments!"); } }
+function sendMessageTwitch(channel, msg) { if (msg) { clientTwitch.say(channel, replaceAllFromLists(msg, replaceFrom, replaceTo)); } else { logError("Tried sending a message but either the message or the channel was missing from the specified arguments!"); } }
 
 async function isTwitchChannelLive() {
     const text = await (await fetch(`https://twitch.tv/${twitchChannel}`).catch(err => { logError(err); return { text: async function() { return ""; }}})).text();
