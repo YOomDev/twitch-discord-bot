@@ -889,6 +889,18 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 // BOT backend //
 /////////////////
 
+function replaceAllFromLists(text, from, to) {
+    let tmp = "" + text;
+    if (from.length > 0) {
+        if (from[0].length) {
+            for (let i = 0; i < from.length; i++) {
+                tmp = tmp.replaceAll(from[i], to[i]);
+            }
+        }
+    }
+    return tmp;
+}
+
 function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime(), showMinutes = false) {
     const totalMinutes = Math.floor((milliTo - milliFrom) / 1000 / 60);
     const totalHours = Math.floor(totalMinutes / 60);
