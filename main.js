@@ -637,7 +637,8 @@ async function stopTwitch() { await clientTwitch.disconnect(); tasksBusy.twitch 
 function sendMessageTwitch(channel, msg) { if (msg) { clientTwitch.say(channel, replaceAllFromLists(msg, replaceFrom, replaceTo)); } else { logError("Tried sending a message but either the message or the channel was missing from the specified arguments!"); } }
 
 async function isTwitchChannelLive() {
-    const text = await (await fetch(`https://twitch.tv/${twitchChannel}`).catch(err => { logError(err); return { text: async function() { return ""; }}})).text();
+    const text = (await (await fetch(`https://twitch.tv/${twitchChannel}`).catch(err => { logError(err); return { text: async function() { return ""; }}})).text()).toString();
+    if (text.length < 1) { return false; } // return early cuz of possible connection error
     const liveIndex = text.indexOf("\",\"isLiveBroadcast\":true");
     if (liveIndex > 0) {
         const findStr = "\"startDate\":\"";
