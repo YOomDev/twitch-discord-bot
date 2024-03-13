@@ -699,14 +699,26 @@ async function parseDataChunk() {
     } else {
         followerData.splice(0, followerData.length);
         logInfo("Started parsing follower data...");
-        for (let i = 0; i < parsedData.length; i++) {
-            for (let j = 0; j < Math.min(amountPerChunk, count - (amountPerChunk * i)); j++) {
-                followerData.push({ id: parsedData[i].data[j].user_id, name: `${parsedData[i].data[j].user_name}`, time: parseTwitchTime(`${parsedData[i].data[j].followed_at}`) });
+        try {
+            for (let i = 0; i < parsedData.length; i++) {
+                for (let j = 0; j < Math.min(amountPerChunk, count - (amountPerChunk * i)); j++) {
+                    followerData.push({
+                        id: parsedData[i].data[j].user_id,
+                        name: `${parsedData[i].data[j].user_name}`,
+                        time: parseTwitchTime(`${parsedData[i].data[j].followed_at}`)
+                    });
+                }
             }
+            count = followerData.length;
+            parsedData.splice(0, parsedData.length);
+            logInfo("Finished parsing follower data!");
+        } catch (err) {
+            logWarning("Failed to load follower data, will attempt again in 5 minutes!");
+            logInfo("Error log:");
+            logData(err);
+            parsedData.splice(0, parsedData.length);
+            sleep(5 * 60).then(_ => { getFollowers().catch(err => { logError(err); }) });
         }
-        count = followerData.length;
-        parsedData.splice(0, parsedData.length);
-        logInfo("Finished parsing follower data!");
     }
 }
 
