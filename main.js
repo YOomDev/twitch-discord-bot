@@ -379,7 +379,15 @@ async function parseTwitch(channel, userState, message) {
                         const name = params[0];
                         const number = parseInt(params[1]);
                         if (!isNaN(number)) {
-                            sleep(60 * number).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
+                            const total = Math.max(number, 0.017); // Clamp the timer to anything above one second
+                            const hours = Math.floor(total / 60);
+                            const minutes = total - (hours * 60);
+                            const seconds = (total - minutes) * 60;
+                            let time = hours > 0 ? `${hours} hour${hours > 1 ? "s" : ""}`.toString() : "";
+                            if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} second${minutes > 1 ? "s" : ""}`.toString(); }
+                            if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
+                            sendMessageTwitch(channel, `Timer \'${name}\' started for ${time}.`);
+                            sleep(60 * total).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended.`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
                         } else { sendMessageTwitch(channel, `Second argument is not a number!`);}
                     } else { sendMessageTwitch(channel, `Not enough arguments given!`); }
                 } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`); }
@@ -751,7 +759,7 @@ async function getFollowers(after = "", force = false) {
         r.setEncoding('utf8');
         r.on('data', data => {
             parseData += data;
-            if (data.indexOf("\"pagination\":") > 1) { parseDataChunk(); }
+            if (parseData.indexOf("\"pagination\":") > 1 && countCharacterInString(parseData, "{") === countCharacterInString(parseData, "}")) { parseDataChunk(); }
         });
     }).on('error', err => { logError(err); });
 }
@@ -906,6 +914,12 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 /////////////////
 // BOT backend //
 /////////////////
+
+function countCharacterInString(text, find) {
+    let count = 0;
+    for (let i = 0; i < text.length; i++) { if (equals(text[i]), find) { count++; } }
+    return count;
+}
 
 function replaceAllFromLists(text, from, to) {
     let tmp = "" + text;
