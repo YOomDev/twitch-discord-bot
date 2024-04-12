@@ -381,10 +381,10 @@ async function parseTwitch(channel, userState, message) {
                         if (!isNaN(number)) {
                             const total = Math.max(number, 0.017); // Clamp the timer to anything above one second
                             const hours = Math.floor(total / 60);
-                            const minutes = total - (hours * 60);
-                            const seconds = (total - minutes) * 60;
+                            const minutes = Mayh.floor(total - (hours * 60));
+                            const seconds = Math.floor((total - minutes) * 60);
                             let time = hours > 0 ? `${hours} hour${hours > 1 ? "s" : ""}`.toString() : "";
-                            if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} second${minutes > 1 ? "s" : ""}`.toString(); }
+                            if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} minute${minutes > 1 ? "s" : ""}`.toString(); }
                             if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
                             sendMessageTwitch(channel, `Timer \'${name}\' started for ${time}.`);
                             sleep(60 * total).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended.`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
