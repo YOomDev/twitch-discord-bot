@@ -387,7 +387,7 @@ async function parseTwitch(channel, userState, message) {
             case "total":
                 if (params.length > 0) {
                     const name = params[0];
-                    if (name.length > 0) { sendMessageTwitch(channel, `Current count for '${name}'`); }
+                    if (name.length > 0) { sendMessageTwitch(channel, `Current count for '${name}' is: ${getCounterCount(name)}`); }
                     else { sendMessageTwitch(channel, "No counter name specified!"); }
                 } else { sendMessageTwitch(channel, NO_ARGS); }
                 break;
