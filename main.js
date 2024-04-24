@@ -418,6 +418,7 @@ async function parseTwitch(channel, userState, message) {
             default:
                 const cmdResult = parseCustomCommand(command);
                 if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
+                else { sendMessageTwitch(channel, `Couldn't find this command: ${command}`); }
                 break;
         }
     } else {
