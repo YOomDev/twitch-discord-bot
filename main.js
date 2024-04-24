@@ -47,6 +47,9 @@ const verifyFolder            = `${__dirname}\\messages\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
 const commandsFolder          = `${__dirname}\\data\\commands\\`;
 
+// Counters
+const counters = [];
+
 // Uptime
 const botStartTime  = new Date().getTime();
 let streamStartTime = new Date().getTime();
@@ -200,6 +203,37 @@ function parseCustomCommand(command) {
     return result;
 }
 
+//////////////
+// COUNTERS //
+//////////////
+
+function saveCounters() {
+    // TODO
+}
+
+function loadCounters() {
+    // TODO
+}
+
+function setCounter(name, amount, add = false) {
+    const index = counterExists(name);
+    if (index < 0) { counters.push({ name: name, total: amount }); }
+    else {
+        if (add) { counters[index].total += amount; }
+        else { counters[index].total = amount; }
+    }
+}
+
+function counterExists(name) {
+    for (let i = 0; i < counters.length; i++) { if (counters[i].name === name) { return i; } }
+    return -1;
+}
+
+function getCounterCount(name) {
+    for (let i = 0; i < counters.length; i++) { if (counters[i].name === name) { return counters[i].total; } }
+    return 0;
+}
+
 /////////
 // BOT //
 /////////
@@ -322,6 +356,41 @@ async function parseTwitch(channel, userState, message) {
 
         // Parse
         switch (command) {
+            case "count":
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
+                    if (params.length > 0) {
+                        const name = params[0];
+                        if (name.length > 0) {
+                            let amount = 1;
+                            if (params.length > 1) {
+                                const number = parseInt(params[1]);
+                                if (!isNaN(number)) { amount = number; }
+                                else { sendMessageTwitch(channel, "Second argument is not a number!"); }
+                            }
+                            setCounter(name, amount, true);
+                        } else { sendMessageTwitch(channel, "No counter name specified!"); }
+                    } else { sendMessageTwitch(channel, NO_ARGS); }
+                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                break;
+            case "set":
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
+                    if (params.length > 1) {
+                        const name = params[0];
+                        if (name.length > 0) {
+                            const number = parseInt(params[1]);
+                            if (!isNaN(number)) { setCounter(name, number); sendMessageTwitch(channel, `Counter '${name}' has been set to ${number}.`); }
+                            else { sendMessageTwitch(channel, "Second argument is not a number!"); }
+                        } else { sendMessageTwitch(channel, "No counter name specified!"); }
+                    } else { sendMessageTwitch(channel, NO_ARGS); }
+                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                break;
+            case "total":
+                if (params.length > 0) {
+                    const name = params[0];
+                    if (name.length > 0) { sendMessageTwitch(channel, `Current count for '${name}'`); }
+                    else { sendMessageTwitch(channel, "No counter name specified!"); }
+                } else { sendMessageTwitch(channel, NO_ARGS); }
+                break;
             case "debug":
                 logInfo("Twitch Debug-info:");
                 logInfo(`${channel}: ${message}`);
