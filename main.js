@@ -33,10 +33,15 @@ const prefix = "!";
 const timePerChunk   = 3; // The amount of seconds the program waits before requesting the next chunk of follower data
 const amountPerChunk = 40; // The amount of followers requested per request to the twitch API
 
+// Command requirement messages
+const MOD_NEEDED = "You can only use this command if you are at least a mod";
+const NO_ARGS = "Not enough arguments given!";
+
 ////////////
 // Memory //
 ////////////
 
+// Folders
 const settingsFolder          = `${__dirname}\\settings\\`;
 const verifyFolder            = `${__dirname}\\messages\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
@@ -77,7 +82,6 @@ const twitchIgnoreUsers      = getSetting(`twitchIgnore`);
 // Words replacement
 const replaceFrom = getSetting(`wordsFrom`);
 const replaceTo   = getSetting(`wordsTo`);
-
 
 // Custom commands
 const commandFileTypes = ["rand"];
@@ -388,15 +392,15 @@ async function parseTwitch(channel, userState, message) {
                             if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
                             sendMessageTwitch(channel, `Timer \'${name}\' started for ${time}.`);
                             sleep(60 * total).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended.`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
-                        } else { sendMessageTwitch(channel, `Second argument is not a number!`);}
-                    } else { sendMessageTwitch(channel, `Not enough arguments given!`); }
-                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a mod`); }
+                        } else { sendMessageTwitch(channel, "Second argument is not a number!");}
+                    } else { sendMessageTwitch(channel, NO_ARGS); }
+                } else { sendMessageTwitch(channel, MOD_NEEDED); }
                 break;
             case "addquote":
                 if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
                     let quote = `\n\"${concat(params, " ")}\" - ${userState['display-name']}`;
                     fs.appendFile(`${commandsFolder}quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${commandsFolder}quote.rand`).length}`); } });
-                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (prime or normal)`); }
+                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (Prime or normal subscriber)`); }
                 break;
             case "sync":
                 if (isVerifiedTwitch(userId)) {
