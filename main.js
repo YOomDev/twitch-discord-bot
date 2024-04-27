@@ -43,7 +43,7 @@ const NO_ARGS = "Not enough arguments given!";
 
 // Folders
 const settingsFolder          = `${__dirname}\\settings\\`;
-const verifyFolder            = `${__dirname}\\messages\\`;
+const verifyFolder            = `${__dirname}\\verify\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
 const commandsFolder          = `${__dirname}\\data\\commands\\`;
 
