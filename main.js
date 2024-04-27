@@ -359,7 +359,7 @@ async function parseTwitch(channel, userState, message) {
             case "count":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     if (params.length > 0) {
-                        const name = params[0];
+                        const name = params[0].toLowerCase();
                         if (name.length > 0) {
                             let amount = 1;
                             if (params.length > 1) {
@@ -375,7 +375,7 @@ async function parseTwitch(channel, userState, message) {
             case "set":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     if (params.length > 1) {
-                        const name = params[0];
+                        const name = params[0].toLowerCase();
                         if (name.length > 0) {
                             const number = parseInt(params[1]);
                             if (!isNaN(number)) { setCounter(name, number); sendMessageTwitch(channel, `Counter '${name}' has been set to ${number}.`); }
