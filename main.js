@@ -1103,6 +1103,8 @@ function sumLength(array) {
 
 function writeLineToFile(path, line = "") { fs.appendFile(path, `${line}\n`, err => { logError(err); }); }
 
+function clearFile(path) { fs.truncate(path, 0, err => { logWarning(`Couldn't clear file: ${path}`)}); }
+
 ///////////////////
 // Program start //
 ///////////////////
