@@ -46,6 +46,7 @@ const settingsFolder          = `${__dirname}\\settings\\`;
 const verifyFolder            = `${__dirname}\\verify\\`;
 const automatedMessagesFolder = `${__dirname}\\automated\\messages\\`;
 const commandsFolder          = `${__dirname}\\data\\commands\\`;
+const countersFolder          = `${__dirname}\\data\\counters\\`;
 
 // Counters
 const counters = [];
@@ -208,11 +209,24 @@ function parseCustomCommand(command) {
 //////////////
 
 function saveCounters() {
-    // TODO
+    const filetype = ".counter";
+    for (let i = 0; i < counters.length; i++) {
+        const path = `${countersFolder}${counters[i].name}${filetype}`;
+        clearFile(path);
+        writeLineToFile(path, counters[i].total.toString());
+    }
 }
 
 function loadCounters() {
-    // TODO
+    counters.splice(0, counters.length);
+    const filetype = ".counter";
+    const files = getFilenamesFromFolder(countersFolder);
+    for (let i =0; i < files.length; i++) {
+        const name = files[i].substring(0, files[i].length - filetype.length);
+        const number = parseInt(readFile(`${countersFolder}${files[i]}${filetype}`)[0]);
+        if (!isNaN(number)) { counters.push({ name: name, total: number }); }
+        else { logWarning(`Couldn't load counter ${name}: couldn't parse integer from file`); }
+    }
 }
 
 function setCounter(name, amount, add = false) {
@@ -253,6 +267,7 @@ async function start() {
         await reloadTwitchTimedMessages();
     }
     await initGPT();
+    loadCounters();
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
     logInfo("Program stopped!");
 }
