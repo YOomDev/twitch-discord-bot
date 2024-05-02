@@ -224,11 +224,13 @@ function loadCounters() {
     counters.splice(0, counters.length);
     const filetype = ".counter";
     const files = getFilenamesFromFolder(countersFolder);
-    for (let i =0; i < files.length; i++) {
-        const name = files[i].substring(0, files[i].length - filetype.length);
-        const number = parseInt(readFile(`${countersFolder}${files[i]}${filetype}`)[0]);
-        if (!isNaN(number)) { counters.push({ name: name, total: number, changed: false }); }
-        else { logWarning(`Couldn't load counter ${name}: couldn't parse integer from file`); }
+    for (let i = 0; i < files.length; i++) {
+        if (files[i].endsWith(filetype)) {
+            const name = files[i].substring(0, files[i].length - filetype.length);
+            const number = parseInt(readFile(`${countersFolder}${files[i]}${filetype}`)[0]);
+            if (!isNaN(number)) { counters.push({name: name, total: number, changed: false}); }
+            else { logWarning(`Couldn't load counter ${name}: couldn't parse integer from file`); }
+        }
     }
 }
 
