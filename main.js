@@ -211,9 +211,12 @@ function parseCustomCommand(command) {
 function saveCounters() {
     const filetype = ".counter";
     for (let i = 0; i < counters.length; i++) {
-        const path = `${countersFolder}${counters[i].name}${filetype}`;
-        clearFile(path);
-        writeLineToFile(path, counters[i].total.toString());
+        if (counters[i].changed) {
+            const path = `${countersFolder}${counters[i].name}${filetype}`;
+            clearFile(path);
+            writeLineToFile(path, counters[i].total.toString());
+            counters[i].changed = false;
+        }
     }
 }
 
@@ -224,7 +227,7 @@ function loadCounters() {
     for (let i =0; i < files.length; i++) {
         const name = files[i].substring(0, files[i].length - filetype.length);
         const number = parseInt(readFile(`${countersFolder}${files[i]}${filetype}`)[0]);
-        if (!isNaN(number)) { counters.push({ name: name, total: number }); }
+        if (!isNaN(number)) { counters.push({ name: name, total: number, changed: false }); }
         else { logWarning(`Couldn't load counter ${name}: couldn't parse integer from file`); }
     }
 }
@@ -234,7 +237,10 @@ function setCounter(name, amount, add = false) {
     if (index < 0) { counters.push({ name: name, total: amount }); }
     else {
         if (add) { counters[index].total += amount; }
-        else { counters[index].total = amount; }
+        else {
+            counters[index].changed = true;
+            counters[index].total = amount;
+        }
     }
 }
 
