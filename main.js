@@ -268,7 +268,7 @@ async function start() {
     loadFollowers().catch(err => { logError(err); });
     setInterval(loadFollowers, 24 * 60 * 60 * 1000); // Reloads the followers list every 24 hours
     setInterval(isTwitchChannelLive, 2 * 60 * 1000); // Checks if the channel is live every 2 minutes
-    setInterval(saveCounters, 60 * 60 * 1000); // Save the counters every hour
+    setInterval(saveCounters, 60 * 1000); // Try to save the changed counters every minute
     isTwitchChannelLive().catch(err => { logError(err); }); // Loads the last starting time of the twitch stream if it is currently live
     await startDiscord();
     logInfo("Bots initialized successfully!");
