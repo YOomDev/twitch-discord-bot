@@ -391,6 +391,7 @@ async function parseTwitch(channel, userState, message) {
                                 if (!isNaN(number)) { amount = number; }
                                 else { sendMessageTwitch(channel, "Second argument is not a number!"); }
                             }
+                            sendMessageTwitch(channel, `Adding ${amount} to '${name}'`);
                             setCounter(name, amount, true);
                         } else { sendMessageTwitch(channel, "No counter name specified!"); }
                     } else { sendMessageTwitch(channel, NO_ARGS); }
