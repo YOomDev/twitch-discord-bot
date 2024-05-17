@@ -1052,9 +1052,10 @@ function equals(first, second) {
     }
 }
 
-function concat(list, separator = "", prefix = "", start = 0) {
+function concat(list, separator = "", prefix = "", start = 0, count = list.length) {
+    const end = Math.min(start + count, list.length);
     let result = "";
-    for (let i = start; i < list.length; i++) { result += (i <= start ? "" : separator) + prefix + list[i]; }
+    for (let i = start; i < end; i++) { result += (i <= start ? "" : separator) + prefix + list[i]; }
     return result;
 }
 
