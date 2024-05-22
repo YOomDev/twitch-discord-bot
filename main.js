@@ -36,6 +36,7 @@ const amountPerChunk = 40; // The amount of followers requested per request to t
 // Command requirement messages
 const MOD_NEEDED = "You can only use this command if you are at least a mod";
 const NO_ARGS = "Not enough arguments given!";
+const NO_PERM = "You do not have the required permissions to use this command!";
 
 ////////////
 // Memory //
@@ -336,9 +337,9 @@ async function parseDiscord(message) {
                         const number = parseInt(params[1]);
                         if (!isNaN(number)) {
                             sleep(60 * number).then(_ => { sendEmbedDiscord(message.channel, "Timer ended", `Timer \'${name}\' ended`.toString()); playAudio(`${name}.mp3`).catch(err => logError(err)) });
-                        } else { sendEmbedDiscord(message.channel, "", "Second argument is not a number.", color_error);}
-                    } else { sendEmbedDiscord(message.channel, "", "Not enough arguments given.", color_error); }
-                } else { sendEmbedDiscord(message.channel, "", "You can only use this command if you are at least a admin!", color_error); }
+                        } else { sendEmbedDiscord(message.channel, "Wrong argument", "Second argument is not a number.", color_error);}
+                    } else { sendEmbedDiscord(message.channel, "Not enough arguments", NO_ARGS, color_error); }
+                } else { sendEmbedDiscord(message.channel, "No permission", "You can only use this command if you are at least a admin!", color_error); }
                 break;
             case "gpt":
                 let shouldPrompt = false;
@@ -348,7 +349,7 @@ async function parseDiscord(message) {
                     const response = await getAnswerFromGPT(prompt);
                     sendEmbedDiscord(message.channel, "GPT-Reply", response);
                 }
-                else { sendEmbedDiscord(message.channel, "No permission", "You have not met the requirements to use this command.", color_error); }
+                else { sendEmbedDiscord(message.channel, "No permission", NO_PERM, color_error); }
                 break;
             case "verify":
                 if (!isVerifiedDiscord(message.author.id)) {
@@ -471,7 +472,7 @@ async function parseTwitch(channel, userState, message) {
                     if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
                     else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
                     sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `off` : `on`}!`);
-                }
+                } else { sendMessageTwitch(channel, NO_PERM); }
                 break;
             case "dad":
             case "joke":
@@ -493,8 +494,7 @@ async function parseTwitch(channel, userState, message) {
                     const prompt = concat(params);
                     const response = await getAnswerFromGPT(prompt);
                     sendMessageTwitch(channel, response);
-                }
-                else { sendMessageTwitch(channel, "You have not met the requirements to use this command."); }
+                } else { sendMessageTwitch(channel, NO_PERM); }
                 break;
             case "commands":
             case "help":
