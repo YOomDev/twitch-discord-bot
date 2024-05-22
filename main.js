@@ -426,7 +426,7 @@ async function parseTwitch(channel, userState, message) {
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
                     sendMessageTwitch(channel, "Bots chat memory has been reset, have a nice stream!");
-                }
+                } else { sendMessageTwitch(channel, MOD_NEEDED); }
                 break;
             case "uptime":
                 const currentTime = new Date().getTime();
