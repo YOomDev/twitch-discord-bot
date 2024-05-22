@@ -441,8 +441,8 @@ async function parseTwitch(channel, userState, message) {
                 break;
             case "joined":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    joiners.splice(0, joiners.length);
-                    sendMessageTwitch(channel, "Join queue has been cleared!");
+                    sendMessageTwitch(channel, joiners[0] + " has been removed from the queue since he has joined.");
+                    joiners.splice(0, 1);
                 } else { sendMessageTwitch(channel, MOD_NEEDED); }
                 break;
             case "clearqueue":
