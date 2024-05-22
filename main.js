@@ -51,6 +51,9 @@ const countersFolder          = `${__dirname}\\data\\counters\\`;
 // Counters
 const counters = [];
 
+// Join queue
+const joiners = [];
+
 // Uptime
 const botStartTime  = new Date().getTime();
 let streamStartTime = new Date().getTime();
@@ -422,9 +425,36 @@ async function parseTwitch(channel, userState, message) {
                 logData(userState);
                 logData(getUserTypeTwitch(userState));
                 break;
+            case "join":
+                if (params.length > 0) {
+                    const name = params[0];
+                    if (contains(joiners, name)) { sendMessageTwitch(channel, "You were already queued to join game!"); }
+                    else {
+                        joiners.push(name);
+                        sendMessageTwitch(channel, "You have been added to the queue!");
+                    }
+                } else { sendMessageTwitch(channel, NO_ARGS); }
+                break;
+            case "queue":
+                const list = concat(joiners, ", ", "", 0, 5);
+                sendMessageTwitch(channel, `List of 5 users that are trying to join: ${list}`);
+                break;
+            case "joined":
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
+                    joiners.splice(0, joiners.length);
+                    sendMessageTwitch(channel, "Join queue has been cleared!");
+                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                break;
+            case "clearqueue":
+                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
+                    joiners.splice(0, joiners.length);
+                    sendMessageTwitch(channel, "Join queue has been cleared!");
+                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                break;
             case "streamon":
                 if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
                     twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
+                    joiners.splice(0, joiners.length); // Clear join queue
                     sendMessageTwitch(channel, "Bots chat memory has been reset, have a nice stream!");
                 } else { sendMessageTwitch(channel, MOD_NEEDED); }
                 break;
