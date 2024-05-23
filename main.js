@@ -311,6 +311,10 @@ async function parseDiscord(message) {
         // Only execute debug command if message comes from a non-verified server or channel, so we avoid spam in the wrong channels or message in the wrong server
         if (!contains(discordAllowedGuilds, message.guildId) || !contains(discordAllowedChannels, message.channelId)) { if (!equals(command, "debug")) { return; } }
 
+        // used params
+        let name;
+        let number;
+
         switch (command) {
             case "debug":
                 logInfo("Discord Debug-info:");
@@ -331,43 +335,37 @@ async function parseDiscord(message) {
                 break;
             case "alarm":
             case "timer":
-                if (isAdminDiscord(member)) {
-                    if (params.length > 1) {
-                        const name = params[0];
-                        const number = parseInt(params[1]);
-                        if (!isNaN(number)) {
-                            sleep(60 * number).then(_ => { sendEmbedDiscord(message.channel, "Timer ended", `Timer \'${name}\' ended`.toString()); playAudio(`${name}.mp3`).catch(err => logError(err)) });
-                        } else { sendEmbedDiscord(message.channel, "Wrong argument", "Second argument is not a number.", color_error);}
-                    } else { sendEmbedDiscord(message.channel, "Not enough arguments", NO_ARGS, color_error); }
-                } else { sendEmbedDiscord(message.channel, "No permission", "You can only use this command if you are at least a admin!", color_error); }
+                if (!isAdminDiscord(member)) { sendEmbedDiscord(message.channel, "No permission", NO_PERM, color_error); return; }
+                if (params.length < 2) { sendEmbedDiscord(message.channel, "Not enough arguments", NO_ARGS, color_error); return; }
+                name = params[0];
+                number = parseInt(params[1]);
+                if (isNaN(number)) { sendEmbedDiscord(message.channel, "Wrong argument", "Second argument is not a number.", color_error); return; }
+                sleep(60 * number).then(_ => { sendEmbedDiscord(message.channel, "Timer ended", `Timer \'${name}\' ended`.toString()); playAudio(`${name}.mp3`).catch(err => logError(err)) });
                 break;
             case "gpt":
-                let shouldPrompt = false;
-                if (isAdminDiscord(member)) { shouldPrompt = true; }
+                let shouldPrompt = isAdminDiscord(member);
                 if (shouldPrompt) {
                     const prompt = concat(params);
                     const response = await getAnswerFromGPT(prompt);
                     sendEmbedDiscord(message.channel, "GPT-Reply", response);
+                    return;
                 }
-                else { sendEmbedDiscord(message.channel, "No permission", NO_PERM, color_error); }
+                sendEmbedDiscord(message.channel, "No permission", NO_PERM, color_error);
                 break;
             case "verify":
-                if (!isVerifiedDiscord(message.author.id)) {
-                    const code = createVerify(message.author.id);
-                    if (code.length) { sendEmbedDiscord(message.author, "Verification-code", `Code: ${code}`); }
-                    else { sendEmbedDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before.", color_error); }
-                } else { sendEmbedDiscord(message.author, "Couldn't verify", "Account is already verified!", color_error); }
+                if (isVerifiedDiscord(message.author.id)) { sendEmbedDiscord(message.author, "Couldn't verify", "Account is already verified!", color_error); return; }
+                const code = createVerify(message.author.id);
+                if (code.length) { sendEmbedDiscord(message.author, "Verification-code", `Code: ${code}`); return; }
+                sendEmbedDiscord(message.author, "Couldn't verify", "Verify-code has already been requested before.", color_error);
                 break;
             case "stop":
                 if (isAdminDiscord(member)) { stop().catch(err => { logError(err); }); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
-                if (cmdResult.length) { sendEmbedDiscord(message.channel, "Custom commands?", cmdResult); }
-                else {
-                    sendEmbedDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
-                    logWarning(`Discord command not found! (${command})`);
-                }
+                if (cmdResult.length) { sendEmbedDiscord(message.channel, "Custom commands?", cmdResult); return; }
+                sendEmbedDiscord(message.channel, "Unknown command", `Command \'${command}\' is unknown to this bot...`);
+                logWarning(`Discord command not found! (${command})`);
                 break;
         }
     }
@@ -382,43 +380,41 @@ async function parseTwitch(channel, userState, message) {
         const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
 
+        // used params
+        let name;
+        let number;
+
         // Parse
         switch (command) {
             case "count":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    if (params.length > 0) {
-                        const name = params[0].toLowerCase();
-                        if (name.length > 0) {
-                            let amount = 1;
-                            if (params.length > 1) {
-                                const number = parseInt(params[1]);
-                                if (!isNaN(number)) { amount = number; }
-                                else { sendMessageTwitch(channel, "Second argument is not a number!"); }
-                            }
-                            sendMessageTwitch(channel, `Adding ${amount} to '${name}'`);
-                            setCounter(name, amount, true);
-                        } else { sendMessageTwitch(channel, "No counter name specified!"); }
-                    } else { sendMessageTwitch(channel, NO_ARGS); }
-                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
+                if (params.length < 1) { sendMessageTwitch(channel, NO_ARGS); return; }
+                name = params[0].toLowerCase();
+                if (name.length < 1) { sendMessageTwitch(channel, "No counter name specified!"); return; }
+                let amount = 1;
+                if (params.length > 1) {
+                    number = parseInt(params[1]);
+                    if (isNaN(number)) { sendMessageTwitch(channel, "Second argument is not a number!"); return; }
+                    amount = number;
+                }
+                sendMessageTwitch(channel, `Adding ${amount} to '${name}'`);
+                setCounter(name, amount, true);
                 break;
             case "set":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    if (params.length > 1) {
-                        const name = params[0].toLowerCase();
-                        if (name.length > 0) {
-                            const number = parseInt(params[1]);
-                            if (!isNaN(number)) { setCounter(name, number); sendMessageTwitch(channel, `Counter '${name}' has been set to ${number}.`); }
-                            else { sendMessageTwitch(channel, "Second argument is not a number!"); }
-                        } else { sendMessageTwitch(channel, "No counter name specified!"); }
-                    } else { sendMessageTwitch(channel, NO_ARGS); }
-                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
+                if (params.length < 2) { sendMessageTwitch(channel, NO_ARGS); return; }
+                name = params[0].toLowerCase();
+                if (name.length < 0) { sendMessageTwitch(channel, "No counter name specified!"); return; }
+                number = parseInt(params[1]);
+                if (isNaN(number)) { sendMessageTwitch(channel, "Second argument is not a number!"); return; }
+                setCounter(name, number);
+                sendMessageTwitch(channel, `Counter '${name}' has been set to ${number}.`);
                 break;
             case "total":
-                if (params.length > 0) {
-                    const name = params[0];
-                    if (name.length > 0) { sendMessageTwitch(channel, `Current count for '${name}' is: ${getCounterCount(name)}`); }
-                    else { sendMessageTwitch(channel, "No counter name specified!"); }
-                } else { sendMessageTwitch(channel, NO_ARGS); }
+                if (params.length < 1) { sendMessageTwitch(channel, NO_ARGS); return; }
+                name = params[0];
+                if (name.length < 1) { sendMessageTwitch(channel, "No counter name specified!"); return; }
+                sendMessageTwitch(channel, `Current count for '${name}' is: ${getCounterCount(name)}`);
                 break;
             case "debug":
                 logInfo("Twitch Debug-info:");
@@ -427,52 +423,45 @@ async function parseTwitch(channel, userState, message) {
                 logData(getUserTypeTwitch(userState));
                 break;
             case "join":
-                if (params.length > 0) {
-                    const name = params[0];
-                    if (contains(joiners, name)) { sendMessageTwitch(channel, "You were already queued to join game!"); }
-                    else {
-                        joiners.push(name);
-                        sendMessageTwitch(channel, "You have been added to the queue!");
-                    }
-                } else { sendMessageTwitch(channel, NO_ARGS); }
+                if (params.length < 1) { sendMessageTwitch(channel, NO_ARGS); return; }
+                name = params[0];
+                if (contains(joiners, name)) { sendMessageTwitch(channel, "You were already queued to join game!"); return; }
+                joiners.push(name);
+                sendMessageTwitch(channel, "You have been added to the queue!");
                 break;
             case "queue":
                 const list = concat(joiners, ", ", "", 0, 5);
                 sendMessageTwitch(channel, `List of 5 users that are trying to join: ${list}`);
                 break;
             case "joined":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    sendMessageTwitch(channel, joiners[0] + " has been removed from the queue since he has joined.");
-                    joiners.splice(0, 1);
-                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
+                sendMessageTwitch(channel, joiners[0] + " has been removed from the queue since he has joined.");
+                joiners.splice(0, 1);
                 break;
             case "clearqueue":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    joiners.splice(0, joiners.length);
-                    sendMessageTwitch(channel, "Join queue has been cleared!");
-                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
+                joiners.splice(0, joiners.length);
+                sendMessageTwitch(channel, "Join queue has been cleared!");
                 break;
             case "streamon":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
-                    joiners.splice(0, joiners.length); // Clear join queue
-                    sendMessageTwitch(channel, "Bots chat memory has been reset, have a nice stream!");
-                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
+                twitchChatters.splice(0, twitchChatters.length); // Clear first time chats for this stream
+                joiners.splice(0, joiners.length); // Clear join queue
+                sendMessageTwitch(channel, "Bots chat memory has been reset, have a nice stream!");
                 break;
             case "uptime":
                 const currentTime = new Date().getTime();
-                if (streamStartTime === botStartTime) { sendMessageTwitch(channel, `Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}, stream time might differ due to a possible bot restart.`); }
-                else { sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}.`); }
+                if (streamStartTime === botStartTime) { sendMessageTwitch(channel, `Bot has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}, stream time might differ due to a possible bot restart.`); return; }
+                sendMessageTwitch(channel, `Stream has been running for ${getTimeDifferenceInDays(streamStartTime, currentTime, true)}.`);
                 break;
             case "automsg":
             case "automessage":
             case "automatedmessage":
-                if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) {
-                    const wasRunning = runMessages;
-                    if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
-                    else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
-                    sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `off` : `on`}!`);
-                } else { sendMessageTwitch(channel, NO_PERM); }
+                if (adminLevel < getAdminLevelTwitch(BROADCASTER)) { sendMessageTwitch(channel, NO_PERM); return; }
+                const wasRunning = runMessages;
+                if (wasRunning) { stopAutomatedMessagesManager().catch(err => { logError(err); }); }
+                else { reloadTwitchTimedMessages().catch(err => { logError(err); }); }
+                sendMessageTwitch(channel, `Automated messages have been turned ${wasRunning ? `off` : `on`}!`);
                 break;
             case "dad":
             case "joke":
@@ -490,11 +479,10 @@ async function parseTwitch(channel, userState, message) {
                     const follower = isFollower(userId);
                     if (follower >= 0) { shouldPrompt = followerData[follower].time < ((new Date().getTime()) - (5 * 24 * 60 * 60 * 1000)); }
                 }
-                if (shouldPrompt) {
-                    const prompt = concat(params);
-                    const response = await getAnswerFromGPT(prompt);
-                    sendMessageTwitch(channel, response);
-                } else { sendMessageTwitch(channel, NO_PERM); }
+                if (!shouldPrompt) { sendMessageTwitch(channel, NO_PERM); return; }
+                const prompt = concat(params);
+                const response = await getAnswerFromGPT(prompt);
+                sendMessageTwitch(channel, response);
                 break;
             case "commands":
             case "help":
@@ -502,51 +490,44 @@ async function parseTwitch(channel, userState, message) {
                 break;
             case "alarm":
             case "timer":
-                if (adminLevel >= getAdminLevelTwitch(MODERATOR)) {
-                    if (params.length > 1) {
-                        const name = params[0];
-                        const number = parseInt(params[1]);
-                        if (!isNaN(number)) {
-                            const total = Math.max(number, 0.017); // Clamp the timer to anything above one second
-                            const hours = Math.floor(total / 60);
-                            const minutes = Math.floor(total - (hours * 60));
-                            const seconds = Math.floor((total - minutes) * 60);
-                            let time = hours > 0 ? `${hours} hour${hours > 1 ? "s" : ""}`.toString() : "";
-                            if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} minute${minutes > 1 ? "s" : ""}`.toString(); }
-                            if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
-                            sendMessageTwitch(channel, `Timer \'${name}\' started for ${time}.`);
-                            sleep(60 * total).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended.`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
-                        } else { sendMessageTwitch(channel, "Second argument is not a number!");}
-                    } else { sendMessageTwitch(channel, NO_ARGS); }
-                } else { sendMessageTwitch(channel, MOD_NEEDED); }
+                if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
+                if (params.length < 2) { sendMessageTwitch(channel, NO_ARGS); return; }
+                name = params[0];
+                number = parseInt(params[1]);
+                if (isNaN(number)) { sendMessageTwitch(channel, "Second argument is not a number!"); return; }
+                const total = Math.max(number, 0.017); // Clamp the timer to anything above one second
+                const hours = Math.floor(total / 60);
+                const minutes = Math.floor(total - (hours * 60));
+                const seconds = Math.floor((total - minutes) * 60);
+                let time = hours > 0 ? `${hours} hour${hours > 1 ? "s" : ""}`.toString() : "";
+                if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} minute${minutes > 1 ? "s" : ""}`.toString(); }
+                if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
+                sendMessageTwitch(channel, `Timer \'${name}\' started for ${time}.`);
+                sleep(60 * total).then(_ => { sendMessageTwitch(channel, `Timer \'${name}\' ended.`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
                 break;
             case "addquote":
-                if (adminLevel >= getAdminLevelTwitch(SUBSCRIBER)) {
-                    let quote = `\n\"${concat(params, " ")}\" - ${userState['display-name']}`;
-                    fs.appendFile(`${commandsFolder}quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${commandsFolder}quote.rand`).length}`); } });
-                } else { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (Prime or normal subscriber)`); }
+                if (adminLevel < getAdminLevelTwitch(PRIME)) { sendMessageTwitch(channel, `You can only use this command if you are at least a subscriber (Prime or normal subscriber)`); return; }
+                let quote = `\n\"${concat(params, " ")}\" - ${userState['display-name']}`;
+                fs.appendFile(`${commandsFolder}quote.rand`, quote, (err) => { if (err) { logError(err); } else { sendMessageTwitch(channel, `Total quotes: ${readFile(`${commandsFolder}quote.rand`).length}`); } });
                 break;
             case "sync":
-                if (isVerifiedTwitch(userId)) {
-                     if (syncTwitchDiscord(userState)) { sendMessageTwitch(channel, "Synced roles!"); }
-                     else { sendMessageTwitch(channel, "There was a problem syncing the roles, could not find the user in the servers"); }
-                } else { sendMessageTwitch(channel, "You can only use this command if you have linked your discord account!"); }
+                if (!isVerifiedTwitch(userId)) { sendMessageTwitch(channel, "You can only use this command if you have linked your discord account!"); return; }
+                if (syncTwitchDiscord(userState)) { sendMessageTwitch(channel, "Synced roles!"); return; }
+                sendMessageTwitch(channel, "There was a problem syncing the roles, could not find the user in the servers");
                 break;
             case "verify":
-                if (params.length > 0) {
-                    if (!isVerifiedTwitch(userId)) {
-                        if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`); }
-                        else { sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?"); }
-                    } else { sendMessageTwitch(channel, "You have already been verified!"); }
-                } else { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); }
+                if (params.length < 1) { sendMessageTwitch(channel, "Need a verification-code as argument, if you don't have this yet you can get it from the discord bot using the verify command there!"); return; }
+                if (isVerifiedTwitch(userId)) { sendMessageTwitch(channel, "You have already been verified!"); return; }
+                if (verify(userId, params[0])) { sendMessageTwitch(channel, `Successfully verified you, ${userState['display-name']}!`); return; }
+                sendMessageTwitch(channel, "Could not verify you, maybe it was the wrong code?");
                 break;
             case "stop":
                 if (adminLevel >= getAdminLevelTwitch(BROADCASTER)) { stop().catch(err => { logError(err); }); }
                 break;
             default:
                 const cmdResult = parseCustomCommand(command);
-                if (cmdResult.length) { sendMessageTwitch(channel, cmdResult); }
-                else { sendMessageTwitch(channel, `Couldn't find this command: ${command}`); }
+                if (cmdResult.length < 1) { sendMessageTwitch(channel, `Couldn't find this command: ${command}`); return;}
+                sendMessageTwitch(channel, cmdResult);
                 break;
         }
     } else {
@@ -949,7 +930,7 @@ function filterResponse(response) {
             return result;
         }
     }
-    return response;
+    return "" + response;
 }
 
 // used to make sure the response from the GPT doesn't contain invalid characters
@@ -1073,7 +1054,7 @@ function getTimeDifferenceInDays(milliFrom, milliTo = new Date().getTime(), show
     return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours${showMinutes ? (minutes > 0 ? ` and ${minutes} minutes` : ``) : ``}`;
 }
 
-function randomInt(max, min = 0) { return  Math.floor(Math.min(min, max)) + Math.floor(Math.random() * (Math.max(min, max) - Math.min(min, max))); }
+function randomInt(max, min = 0) { return  Math.floor(Math.min(+min, +max)) + Math.floor(Math.random() * (Math.max(+min, +max) - Math.min(+min, +max))); }
 
 function equals(first, second) {
     switch (first) {
