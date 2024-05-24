@@ -431,7 +431,7 @@ async function parseTwitch(channel, userState, message) {
                 break;
             case "queue":
                 const list = concat(joiners, ", ", "", 0, 5);
-                sendMessageTwitch(channel, `List of 5 users that are trying to join: ${list}`);
+                sendMessageTwitch(channel, `List of ${ Math.min(joiners.length, 5)} user${joiners.length > 1 ? "s" : ""} that are trying to join: ${list}`);
                 break;
             case "joined":
                 if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
