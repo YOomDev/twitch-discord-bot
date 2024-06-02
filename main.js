@@ -498,7 +498,7 @@ async function parseTwitch(channel, userState, message) {
                 const total = Math.max(number, 0.017); // Clamp the timer to anything above one second
                 const hours = Math.floor(total / 60);
                 const minutes = Math.floor(total - (hours * 60));
-                const seconds = Math.floor((total - minutes) * 60);
+                const seconds = Math.floor((total - (hours * 60 + minutes)) * 60);
                 let time = hours > 0 ? `${hours} hour${hours > 1 ? "s" : ""}`.toString() : "";
                 if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} minute${minutes > 1 ? "s" : ""}`.toString(); }
                 if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
@@ -956,7 +956,7 @@ const audioQueue = [];
 let audioPlaying = false;
 
 async function playAudio(path = "") {
-    while (path.endsWith(" ")) { path = path.substring(0, path.length - 1); }
+    path.trimEnd();
     if (path.length > 0) { audioQueue.push(path); }
     if (!audioPlaying && audioQueue.length > 0) {
         audioPlaying = true;
