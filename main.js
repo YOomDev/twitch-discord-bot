@@ -1036,9 +1036,9 @@ function hasURL(msg) {
         else if (parts[i].startsWith("http:\/\/")) { line = parts.substring("http:\/\/".length); }
 
         // Check if part has technically valid domain
-        const firstDot = line.search(".");
+        const firstDot = line.indexOf(".");
         if (firstDot < 1) { continue; } // Exit check if no dot after the first character
-        const firstBackslash = line.search("\/");
+        const firstBackslash = line.indexOf("\/");
         if (firstBackslash > -1 && firstBackslash < firstDot + 2) { continue; } // Exit check if first backslash is before the first character after the first dot
 
         return true; // Return true if no checks failed
