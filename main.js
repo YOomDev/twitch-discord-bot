@@ -531,8 +531,8 @@ async function parseTwitch(channel, userState, message) {
                 break;
         }
     } else {
-        if (!contains(twitchChatters, userId)) { // Check if user contains an url
-            if (message.search(/[^\s/$.?#].[^\s]*$/i) > -1) { return; }
+        if (!contains(twitchChatters, userId)) {
+            if (hasURL(message)) { return; }
             twitchChatters.push(userId);
             const lines = readFile(`${automatedMessagesFolder}welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
             sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState['display-name']));
@@ -1025,6 +1025,26 @@ function isAdminDiscord(member) { return member.roles.cache.some((role) => { ret
 /////////////////
 // BOT backend //
 /////////////////
+
+function hasURL(msg) {
+    const parts = msg.split(" ");
+    for (let i = 0; i < parts.length; i++) {
+        let line = parts[i];
+
+        // Remove http(s) parts if they are there
+        if (parts[i].startsWith("https:\/\/")) { line = parts.substring("https:\/\/".length); }
+        else if (parts[i].startsWith("http:\/\/")) { line = parts.substring("http:\/\/".length); }
+
+        // Check if part has technically valid domain
+        const firstDot = line.search(".");
+        if (firstDot < 1) { continue; } // Exit check if no dot after the first character
+        const firstBackslash = line.search("\/");
+        if (firstBackslash > -1 && firstBackslash < firstDot + 2) { continue; } // Exit check if first backslash is before the first character after the first dot
+
+        return true; // Return true if no checks failed
+    }
+    return false; // Return false if no checks succeeded in finding a URL
+}
 
 function countCharacterInString(text, find) {
     let count = 0;
