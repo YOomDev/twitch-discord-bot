@@ -532,11 +532,10 @@ async function parseTwitch(channel, userState, message) {
         }
     } else {
         if (!contains(twitchChatters, userId)) { // Check if user contains an url
-            if (message.search(/[^\s/$.?#].[^\s]*$/i) < 0) {
-                twitchChatters.push(userId);
-                const lines = readFile(`${automatedMessagesFolder}welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
-                sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState['display-name']));
-            } else { return; }
+            if (message.search(/[^\s/$.?#].[^\s]*$/i) > -1) { return; }
+            twitchChatters.push(userId);
+            const lines = readFile(`${automatedMessagesFolder}welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
+            sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState['display-name']));
         }
         messagesSinceLastAutomatedMessage++;
     }
