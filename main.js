@@ -1032,8 +1032,8 @@ function hasURL(msg) {
         let line = parts[i];
 
         // Remove http(s) parts if they are there
-        if (parts[i].startsWith("https:\/\/")) { line = parts.substring("https:\/\/".length); }
-        else if (parts[i].startsWith("http:\/\/")) { line = parts.substring("http:\/\/".length); }
+        if (parts[i].startsWith("https:\/\/")) { line = parts[i].substring("https:\/\/".length); }
+        else if (parts[i].startsWith("http:\/\/")) { line = parts[i].substring("http:\/\/".length); }
 
         // Check if part has technically valid domain
         const firstDot = line.indexOf(".");
