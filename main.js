@@ -9,6 +9,7 @@ const tmi = require("tmi.js");
 const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const APIChatGPT = require("openai");
+const {deletemessage} = require("tmi.js/lib/commands");
 
 //////////////
 // Settings //
@@ -86,6 +87,7 @@ const adminRoles             = getSetting(`discordAdminRoles`);
 
 const twitchChannel          = getSettingString(`twitchUserInfo`);
 const twitchIgnoreUsers      = getSetting(`twitchIgnore`);
+const allowFollowerLinks     = equals(getSettingString(`autoMessageOnStart`).toLowerCase(), "true");
 
 // Words replacement
 const replaceFrom = getSetting(`wordsFrom`);
@@ -373,11 +375,30 @@ async function parseDiscord(message) {
 
 async function parseTwitch(channel, userState, message) {
     const userId = userState['user-id'];
+    const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
+    if (adminLevel < PRIME) { // TODO: TEST THIS PART OF THE CODE BEFORE USING
+        if (hasURL(message)) {
+            let allow = false;
+            if (allowFollowerLinks) {
+                const follower = isFollower(userId);
+                if (follower >= 0) {
+                    const time = (new Date().getTime()) - followerData[follower].time;
+                    allow = time > 1 * 24 * 60 * 60 * 1000; // allowed if follower for more than 1 day(s)
+                }
+            }
+            if (!allow) {
+                logWarning(`Message from ${userState['display-name']} should have been deleted!`); // TODO: TMP
+                // TODO: delete message
+                // deletemessage(channel, userState.id);
+            }
+        }
+    }
+
+    // Commands:
     if (message.startsWith(prefix)) { // Check if the message is a command
         // Gather the needed info for the command
         const params = message.trim().substring(prefix.length, message.length).split(" ");
         const command = params[0].toLowerCase();
-        const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
         params.splice(0, 1);
 
         // used params
@@ -530,6 +551,8 @@ async function parseTwitch(channel, userState, message) {
                 sendMessageTwitch(channel, cmdResult);
                 break;
         }
+
+    // Welcome messages:
     } else {
         if (!contains(twitchChatters, userId)) {
             if (hasURL(message)) { return; }
@@ -726,10 +749,9 @@ const clientTwitch = new tmi.Client({
     channels: [`#${twitchChannel}`]
 });
 clientTwitch.on('message', (channel, userState, message, self) => {
-    if (!self) {
-        for (let i = 0; i < twitchIgnoreUsers.length; i++) { if (equals(twitchIgnoreUsers[i].toLowerCase(), userState['display-name'].toString().toLowerCase())) { return; } }
-        parseTwitch(channel, userState, message);
-    }
+    if (self) { return; }
+    for (let i = 0; i < twitchIgnoreUsers.length; i++) { if (equals(twitchIgnoreUsers[i].toLowerCase(), userState['display-name'].toString().toLowerCase())) { return; } }
+    parseTwitch(channel, userState, message);
 });
 
 // Starting creates a promise that contains the current twitch client, it is stored here to make sure all the different clients can work asynchronously
