@@ -376,7 +376,7 @@ async function parseDiscord(message) {
 async function parseTwitch(channel, userState, message) {
     const userId = userState['user-id'];
     const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
-    if (adminLevel < PRIME) { // TODO: TEST THIS PART OF THE CODE BEFORE USING
+    if (adminLevel < PRIME) { // TODO: TEST THIS PART OF THE CODE BEFORE USING ACTUAL MESSAGE DELETING
         if (hasURL(message)) {
             let allow = false;
             if (allowFollowerLinks) {
