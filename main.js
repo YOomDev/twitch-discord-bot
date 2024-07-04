@@ -911,6 +911,9 @@ const configuration = new APIChatGPT.Configuration({
 const openai = new APIChatGPT.OpenAIApi(configuration);
 
 async function initGPT() {
+    return; // TODO: TMP until this is definitely working after forced audit fix
+
+
     logInfo("Initializing ChatGPT connection...");
 
     // Load OpenAI ChatGPT connection
