@@ -904,12 +904,13 @@ async function getFollowers(after = "", force = false) {
 let isRunningGPT = false;
 
 // OpenAI's ChatGPT
+/*
 const configuration = new APIChatGPT.Configuration({
     organization: getSettingString(`gptOrg`),
     apiKey: getSettingString(`gptKey`),
 });
 const openai = new APIChatGPT.OpenAIApi(configuration);
-
+*/
 async function initGPT() {
     return; // TODO: TMP until this is definitely working after forced audit fix
 
