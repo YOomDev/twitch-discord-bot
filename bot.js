@@ -24,6 +24,7 @@ client.commands = new Collection();
 client.once(Events.ClientReady, readyClient => { logInfo(`Discord bot is ready! Logged in as ${readyClient.user.tag}`); });
 
 client.on(Events.InteractionCreate, async interaction => {
+    // TODO: add message reply option?
     if (!interaction.isChatInputCommand()) return;
     const command = interaction.client.commands.get(interaction.commandName);
 
@@ -50,11 +51,7 @@ client.utils.buildEmbed = (title, message, fields = [], color = client.utils.col
     const embed = new EmbedBuilder().setTitle(title).setColor(color).setDescription(message);
 
     // Fields
-    // TODO: rework this to make fields more easily readable for other humans or later use
-    // 0: name (string)
-    // 1: text (string)
-    // 2: inline (boolean)
-    for (const field in fields) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }) }
+    for (const field in fields) { embed.addFields({ name: fields[i].name, value: fields[i][1], inline: fields[i][2] }) }
 
     return embed;
 };
@@ -62,6 +59,7 @@ client.utils.loggers = {};
 client.utils.loggers.err  = (err) => { logError   (err); };
 client.utils.loggers.warn = (msg) => { logWarning (msg); };
 client.utils.loggers.log  = (msg) => { logInfo    (msg); };
+client.utils.loggers.data = (msg) => { logData    (msg); };
 
 function registerCommands() {
     client.commands.clear();
