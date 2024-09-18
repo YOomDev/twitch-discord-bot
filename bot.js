@@ -7,6 +7,46 @@ async function start() {
     client.login(token).catch(err => logError(err));
 }
 
+//////////////
+// Resolver //
+//////////////
+
+let lastRequestId = -1;
+const requests = [];
+
+function createRequest() {
+    lastRequestId += 1;
+    const id = lastRequestId;
+    requests.push({ id: id, resolved: false, data: 0 });
+    return id;
+}
+
+async function getSolvedRequest(id){
+    while (true) {
+        await sleep(0.5);
+        for (let i = 0; i < requests.length; i++) {
+            if (requests[i].id === id) {
+                if (requests[i].resolved) {
+                    const returnData = requests[i].data;
+                    requests.splice(i, 1);
+                    return returnData;
+                }
+                break;
+            }
+        }
+    }
+}
+
+function resolveRequest(id, data) {
+    for (let i = 0; i < requests.length; i++) {
+        if (requests[i].id === id) {
+            requests[i].data = data;
+            requests[i].resolved = true;
+            return;
+        }
+    }
+}
+
 /////////////////
 // Discord bot //
 /////////////////
@@ -55,11 +95,17 @@ client.utils.buildEmbed = (title, message, fields = [], color = client.utils.col
 
     return embed;
 };
-client.utils.loggers = {};
-client.utils.loggers.err  = (err) => { logError   (err); };
-client.utils.loggers.warn = (msg) => { logWarning (msg); };
-client.utils.loggers.log  = (msg) => { logInfo    (msg); };
-client.utils.loggers.data = (msg) => { logData    (msg); };
+client.utils.loggers = {
+    err : (err) => { logError   (err); },
+    warn: (msg) => { logWarning (msg); },
+    log : (msg) => { logInfo    (msg); },
+    data: (dat) => { logData    (dat); },
+};
+client.utils.resolver = {
+    createRequest: createRequest,
+    resolveRequest: resolveRequest,
+    getSolvedRequest: getSolvedRequest
+};
 
 function registerCommands() {
     client.commands.clear();
