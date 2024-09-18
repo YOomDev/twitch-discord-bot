@@ -62,8 +62,14 @@ client.commands = new Collection();
 
 client.once(Events.ClientReady, readyClient => { logInfo(`Discord bot is ready! Logged in as ${readyClient.user.tag}`); });
 
+client.on(Events.MessageCreate, async message => {
+    if (message.author.id === clientDiscord.user.id) { return; }
+
+    // TODO: handle messages
+});
+
+// Command handler
 client.on(Events.InteractionCreate, async interaction => {
-    // TODO: add message reply option?
     if (!interaction.isChatInputCommand()) return;
     const command = interaction.client.commands.get(interaction.commandName);
 
