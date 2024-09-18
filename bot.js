@@ -22,19 +22,18 @@ function createRequest() {
 }
 
 async function getSolvedRequest(id){
-    while (true) {
-        await sleep(0.5);
-        for (let i = 0; i < requests.length; i++) {
-            if (requests[i].id === id) {
-                if (requests[i].resolved) {
-                    const returnData = requests[i].data;
-                    requests.splice(i, 1);
-                    return returnData;
-                }
-                break;
+    for (let i = 0; i < requests.length; i++) {
+        if (requests[i].id !== id) { continue; }
+        while (true) {
+            await sleep(0.5);
+            if (requests[i].resolved) {
+                const returnData = requests[i].data;
+                requests.splice(i, 1);
+                return returnData;
             }
         }
     }
+    return 0;
 }
 
 function resolveRequest(id, data) {
@@ -144,6 +143,7 @@ function logError(err)   { console.error(`[${getTimeString()}] ERROR:\t`, err );
 function logWarning(err) { console.error(`[${getTimeString()}] Warning:`, err ); }
 function logInfo(info)   { console.log  (`[${getTimeString()}] Info:\t` , info); }
 function logData(data)   { console.log  (data); }
+async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.max(seconds, 0) * 1000)); }
 
 /////////////
 // Run bot //
