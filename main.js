@@ -6,23 +6,12 @@
 const fs    = require('fs');
 const https = require('https');
 const tmi = require("tmi.js");
-const { Client, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
+const { Client, Events, GatewayIntentBits, ActivityType } = require('discord.js');
 const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
-const APIChatGPT = require("openai");
-const {deletemessage} = require("tmi.js/lib/commands");
 
 //////////////
 // Settings //
 //////////////
-
-const filter = false; // Used to turn on response filters from code or GPTs for example
-const filterWords = [ // A list of all the words that should be filtered if the filter is turned on
-    "test",
-    "test 2",
-    "test3",
-    "testfour",
-];
-const FILTERED = sortByLength(filterWords);
 
 const color       = "#FF8888";
 const color_error = "#FF3333";
@@ -95,13 +84,6 @@ const replaceTo   = getSetting(`wordsTo`);
 
 // Custom commands
 const commandFileTypes = ["rand"];
-
-// Response character filtering for GPT
-const capitalCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const normalCharacters  = capitalCharacters.toLowerCase() + capitalCharacters;
-const specialCharacters = " .,:;[]!?(){}=-+<>~|*%^&$#@!|`\'\"/\\";
-const numbers           = "0123456789";
-const allowedCharacters = capitalCharacters + normalCharacters + specialCharacters + numbers;
 
 ///////////////////////////////////
 // Basic request and resolve API //
@@ -266,7 +248,7 @@ function getCounterCount(name) {
 // BOT //
 /////////
 
-function isBusy() { return tasksBusy.discord || tasksBusy.twitch; }
+function isBusy() { return tasksBusy.twitch; }
 
 async function start() {
     logInfo("Initializing bots...");
@@ -276,12 +258,11 @@ async function start() {
     setInterval(isTwitchChannelLive, 2 * 60 * 1000); // Checks if the channel is live every 2 minutes
     setInterval(saveCounters, 60 * 1000); // Try to save the changed counters every minute
     isTwitchChannelLive().catch(err => { logError(err); }); // Loads the last starting time of the twitch stream if it is currently live
-    await startDiscord();
+
     logInfo("Bots initialized successfully!");
     if (runMessages && automatedMessageManager === 0) {
         await reloadTwitchTimedMessages();
     }
-    await initGPT();
     loadCounters();
     while (isBusy()) { await sleep(1); } // Keep program alive so bots can keep responding without being on the main call thread
     logInfo("Program stopped!");
@@ -290,10 +271,6 @@ async function start() {
 async function stop() {
     if (!closing) {
         closing = true;
-        if (tasksBusy.discord) {
-            await stopDiscord();
-            logData("Stopped discord bot");
-        }
         if (tasksBusy.twitch) {
             await stopTwitch();
             logData("Stopped twitch bot");
@@ -318,23 +295,6 @@ async function parseDiscord(message) {
         let number;
 
         switch (command) {
-            case "debug":
-                logInfo("Discord Debug-info:");
-                logData(message);
-                break;
-            case "commands":
-            case "help":
-                const fields = [
-                    [`${prefix}help`, "Displays the help page", false],
-                    [`${prefix}verify`, "This command will give you a verify code to link with your twitch account if you are not linked yet", false],
-                    [`${prefix}joke`, "Tells a joke", false],
-                ];
-                sendEmbedDiscord(message.channel, "Commands:", "...", color, fields);
-                break;
-            case "dad":
-            case "joke":
-                sendEmbedDiscord(message.channel, "Joke", await getDadJoke());
-                break;
             case "alarm":
             case "timer":
                 if (!isAdminDiscord(member)) { sendEmbedDiscord(message.channel, "No permission", NO_PERM, color_error); return; }
@@ -343,16 +303,6 @@ async function parseDiscord(message) {
                 number = parseInt(params[1]);
                 if (isNaN(number)) { sendEmbedDiscord(message.channel, "Wrong argument", "Second argument is not a number.", color_error); return; }
                 sleep(60 * number).then(_ => { sendEmbedDiscord(message.channel, "Timer ended", `Timer \'${name}\' ended`.toString()); playAudio(`${name}.mp3`).catch(err => logError(err)) });
-                break;
-            case "gpt":
-                let shouldPrompt = isAdminDiscord(member);
-                if (shouldPrompt) {
-                    const prompt = concat(params);
-                    const response = await getAnswerFromGPT(prompt);
-                    sendEmbedDiscord(message.channel, "GPT-Reply", response);
-                    return;
-                }
-                sendEmbedDiscord(message.channel, "No permission", NO_PERM, color_error);
                 break;
             case "verify":
                 if (isVerifiedDiscord(message.author.id)) { sendEmbedDiscord(message.author, "Couldn't verify", "Account is already verified!", color_error); return; }
@@ -376,23 +326,6 @@ async function parseDiscord(message) {
 async function parseTwitch(channel, userState, message) {
     const userId = userState['user-id'];
     const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
-    if (adminLevel < PRIME) { // TODO: TEST THIS PART OF THE CODE BEFORE USING ACTUAL MESSAGE DELETING
-        if (hasURL(message)) {
-            let allow = false;
-            if (allowFollowerLinks) {
-                const follower = isFollower(userId);
-                if (follower >= 0) {
-                    const time = (new Date().getTime()) - followerData[follower].time;
-                    allow = time > 1 * 24 * 60 * 60 * 1000; // allowed if follower for more than 1 day(s)
-                }
-            }
-            if (!allow) {
-                logWarning(`Message from ${userState['display-name']} should have been deleted!`); // TODO: TMP
-                // TODO: delete message
-                // deletemessage(channel, userState.id);
-            }
-        }
-    }
 
     // Commands:
     if (message.startsWith(prefix)) { // Check if the message is a command
@@ -492,22 +425,10 @@ async function parseTwitch(channel, userState, message) {
             case "followage":
                 const follower = isFollower(userId);
                 sendMessageTwitch(channel, follower < 0 ? "You have not followed long enough to check" : getTimeDifferenceInDays(followerData[follower].time));
-                break
-            case "gpt":
-                let shouldPrompt = false;
-                if (adminLevel >= getAdminLevelTwitch(PRIME)) { shouldPrompt = true; }
-                else {
-                    const follower = isFollower(userId);
-                    if (follower >= 0) { shouldPrompt = followerData[follower].time < ((new Date().getTime()) - (5 * 24 * 60 * 60 * 1000)); }
-                }
-                if (!shouldPrompt) { sendMessageTwitch(channel, NO_PERM); return; }
-                const prompt = concat(params);
-                const response = await getAnswerFromGPT(prompt);
-                sendMessageTwitch(channel, response);
                 break;
             case "commands":
             case "help":
-                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${prefix}joke ${prefix}gpt ${getCustomCommands()}`);
+                sendMessageTwitch(channel, `Commands: ${prefix}verify ${prefix}sync ${prefix}quote ${prefix}followage ${prefix}uptime ${prefix}joke ${getCustomCommands()}`);
                 break;
             case "alarm":
             case "timer":
@@ -626,12 +547,6 @@ function syncTwitchDiscord(userState) {
        });
     });
     return false;
-}
-
-async function getAnswerFromGPT(prompt) {
-    const response = await chatPrompt(prompt);
-    if (response.length > 0) { return response; }
-    else { return "There were problems getting a response from ChatGPT..."; }
 }
 
 async function reloadTwitchTimedMessages() {
@@ -898,76 +813,6 @@ async function getFollowers(after = "", force = false) {
     }).on('error', err => { logError(err); });
 }
 
-/////////////////
-// GPT Backend //
-/////////////////
-
-let isRunningGPT = false;
-
-// OpenAI's ChatGPT
-/*
-const configuration = new APIChatGPT.Configuration({
-    organization: getSettingString(`gptOrg`),
-    apiKey: getSettingString(`gptKey`),
-});
-const openai = new APIChatGPT.OpenAIApi(configuration);
-*/
-async function initGPT() {
-    return; // TODO: TMP until this is definitely working after forced audit fix
-
-
-    logInfo("Initializing ChatGPT connection...");
-
-    // Load OpenAI ChatGPT connection
-    const response = await openai.listEngines();
-    if (response.status !== 200) { logWarning("Failed to connect to OpenAI\'s ChatGPT..."); }
-    else { logInfo("Managed to connect to OpenAI\'s ChatGPT!"); isRunningGPT = true; }
-}
-
-async function chatPrompt(prompt) {
-    const messages = [{ role: "user", content: prompt }];
-    const completion = await openai.createChatCompletion({  model: "gpt-3.5-turbo", messages: messages }).catch(err => { logError(err); });
-    if (!completion) { logError("Couldn\'t get a response to prompt!"); return ""; } // Needed after the chat completion bugs out and doesn't return anything
-    if (completion.status !== 200) { logError(completion.data.error.message); return ""; }
-    const response = completion.data.choices[0].message.content;
-    return filterResponse(cleanResponse(response));
-}
-
-// Used to filter the responses if the setting is turned on so that it can be used in situations where the AI is not allowed to say certain things
-function filterResponse(response) {
-    if (filter) {
-        if (containsFromList(response, FILTERED, true)) {
-            let tmp = response.toLowerCase();
-            let index = -1;
-            const replace = [];
-            for (let i = 0; i < FILTERED.length; i++) {
-                while (true) {
-                    index = tmp.indexOf(FILTERED[i].toLowerCase(), index + 1);
-                    if (index === -1) { break; }
-                    replace.push({ start: index, end: index + FILTERED[i].length});
-                }
-            }
-            let result = "";
-            for (let i = 0; i < response.length; i++) {
-                let shouldReplace = false;
-                for (let j = 0; j < replace.length; j ++) {
-                    if (i < replace[j].end && i >= replace[j].start) { shouldReplace = true; break; }
-                }
-                result += shouldReplace ? '*' : response[i];
-            }
-            return result;
-        }
-    }
-    return "" + response;
-}
-
-// used to make sure the response from the GPT doesn't contain invalid characters
-function cleanResponse(response) {
-    let result = "";
-    for (let i = 0; i < response.length; i++) { if (allowedCharacters.indexOf(response[i]) >= 0) { result += response[i]; } }
-    return result.substring(findCapitalCharacter(result), result.length);
-}
-
 /////////////////////
 // Discord backend //
 /////////////////////
@@ -1026,26 +871,6 @@ clientDiscord.on(Events.VoiceStateUpdate, (oldState, newState) => {
         }
     }
 })
-
-// Starting creates a promise that contains the current discord client, it is stored here to make sure all the different clients can work asynchronously
-let discord = 0;
-
-async function startDiscord() {
-    ready = false;
-    tasksBusy.discord = true;
-    discord = clientDiscord.login(getSettingString(`discordToken`)).catch(err => { logError(err); tasksBusy.discord = false; ready = true; });
-    while (!ready) { await sleep(0.25); }
-    ready = false;
-}
-
-async function stopDiscord() { clientDiscord.destroy(); await sleep(1); tasksBusy.discord = false; }
-
-function sendEmbedDiscord(channel, title, description, col = color, fields = []) {
-    if (!channel || !title || ! description) { logError("Tried sending a discord message without specifying the required arguments!"); return; }
-    const embed = new EmbedBuilder().setTitle(title).setColor(col).setDescription(description);
-    for (let i = 0; i < fields.length; i++) { embed.addFields({ name: fields[i][0], value: fields[i][1], inline: fields[i][2] }); }
-    channel.send({ embeds: [embed] });
-}
 
 function isAdminDiscord(member) { return member.roles.cache.some((role) => { return contains(adminRoles, role.name); }); }
 
@@ -1122,14 +947,6 @@ function getTimeString(date = new Date()) { return date.toLocaleTimeString(); }
 
 function contains(array, value) { for (let i = 0; i < array.length; i++) { if (equals(array[i], value)) { return true; } } return false; }
 
-function containsFromList(txt, list, ignoreCase = false) {
-    for (let i = 0; i < list.length; i++) {
-        if (txt.indexOf(list[i])) { return true; }
-        else if (ignoreCase) { if (txt.toLowerCase().indexOf(list[i].toLowerCase())) { return true; } }
-    }
-    return false;
-}
-
 function sortByLength(list) {
     const tmp = [];
     for (let i = 0; i < list.length; i++) { tmp.push(list[i]); } // Make a static copy
@@ -1150,8 +967,6 @@ function sortByLength(list) {
     }
     return result;
 }
-
-function findCapitalCharacter(str, start = 0) { for (let i = start; i < str.length; i++) { if (capitalCharacters.indexOf(str[i]) >= 0) { return i; } } return start; }
 
 function logError(err)   { console.error(`[${getTimeString()}] ERROR:\t`, err ); }
 function logWarning(err) { console.error(`[${getTimeString()}] Warning:`, err ); }
