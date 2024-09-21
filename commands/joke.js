@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('joke')
         .setDescription('Tells a joke.'),
-    async executeDiscord(interaction) {
+    async execute(interaction) {
         await interaction.reply(interaction.client.utils.buildEmbed("Joke", await getDadJoke(interaction.client.utils)));
     },
 };
