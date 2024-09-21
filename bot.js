@@ -1,10 +1,13 @@
 // Bot file
-const commandProperties = ["data", "executeDiscord"];
-const token = "";
+const commandProperties = ["data", "execute"];
+const token = ""; // TMP
+const guildId = ""; // TMP
+const clientId = ""; // TMP
 
 async function start() {
     registerCommands();
     client.login(token).catch(err => logError(err));
+    uploadDiscordCommands();
 }
 
 //////////////
@@ -52,9 +55,10 @@ function resolveRequest(id, data) {
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
+const { REST, Routes, Client, Collection, Events, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 
 // client
+const rest = new REST().setToken(token);
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
@@ -78,7 +82,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return;
     }
 
-    try { await command.executeDiscord(interaction); }
+    try { await command.execute(interaction); }
     catch (error) {
         logError(error);
         if (interaction.replied || interaction.deferred) { await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true }); }
@@ -136,6 +140,21 @@ function registerCommands() {
             client.commands.set(command.data.name, command);
         }
     }
+}
+
+async function uploadDiscordCommands() {
+    try {
+        logInfo(`Started refreshing ${client.commands.length} application (/) commands.`);
+
+        // The put method is used to fully refresh all commands in the guild with the current set
+        const data = await rest.put(
+            Routes.applicationGuildCommands(clientId, guildId),
+            { body: client.commands },
+        );
+
+        logInfo(`Successfully reloaded ${data.length} application (/) commands.`);
+    }
+    catch (error) { logError(error); }
 }
 
 ///////////
