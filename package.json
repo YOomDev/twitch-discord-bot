@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "update": "cd ./discord-bot-base && npm run test && cd .."
+    "update": "cd ./discord-bot-base && npm run update && cd .."
   },
   "keywords": [],
   "author": "Ype Oomes",
