@@ -8,7 +8,11 @@ import https from 'https';
 import tmi from 'tmi.js';
 import { Client, Events, GatewayIntentBits, ActivityType } from 'discord.js';
 import { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } from '@discordjs/voice';
-const __dirname = import.meta.dirname;
+
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 //////////////
 // Settings //
