@@ -6,6 +6,7 @@
   "scripts": {
     "update": "cd ./discord-bot-base && npm run update && cd .."
   },
+  "type": "module",
   "keywords": [],
   "author": "Ype Oomes",
   "license": "ISC",

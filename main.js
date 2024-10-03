@@ -3,11 +3,12 @@
 // Dependencies //
 //////////////////
 
-const fs    = require('fs');
-const https = require('https');
-const tmi = require("tmi.js");
-const { Client, Events, GatewayIntentBits, ActivityType } = require('discord.js');
-const { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+import fs from 'fs';
+import https from 'https';
+import tmi from 'tmi.js';
+import { Client, Events, GatewayIntentBits, ActivityType } from 'discord.js';
+import { createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource, AudioPlayerStatus } from '@discordjs/voice';
+const __dirname = import.meta.dirname;
 
 //////////////
 // Settings //
@@ -323,7 +324,8 @@ async function parseDiscord(message) {
     }
 }
 
-// const { generateResponse, ROLES } = require('./discord-bot-base/gpt.mjs');
+const gpt = {}
+import { ROLES, generateResponse } from './discord-bot-base/gpt.mjs'
 
 async function parseTwitch(channel, userState, message) {
     const userId = userState['user-id'];
@@ -342,13 +344,13 @@ async function parseTwitch(channel, userState, message) {
 
         // Parse
         switch (command) {
-            // case "gpt":
-            //     if (adminLevel < getAdminLevelTwitch(PRIME)) { sendMessageTwitch(channel, NO_PERM); return; }
-            //     const prompt = concat(params, " ");
-            //     try {
-            //         sendMessageTwitch(channel, await generateResponse([{ role: ROLES.USER, content: prompt }]).message.content)
-            //     } catch (e) { sendMessageTwitch("Command failed to work, try again later when the dev has attempted fixing this!") }
-            //     break;
+            case "gpt":
+                if (adminLevel < getAdminLevelTwitch(PRIME)) { sendMessageTwitch(channel, NO_PERM); return; }
+                const prompt = concat(params, " ");
+                try {
+                    sendMessageTwitch(channel, (await generateResponse([{ role: ROLES.USER, content: prompt }])).message.content)
+                } catch (e) { logError(e); sendMessageTwitch(channel, "Command failed to work, try again later when the dev has attempted fixing this!") }
+                break;
             case "count":
                 if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
                 if (params.length < 1) { sendMessageTwitch(channel, NO_ARGS); return; }
