@@ -323,6 +323,8 @@ async function parseDiscord(message) {
     }
 }
 
+const { generateResponse, ROLES } = require('./discord-bot-base/gpt.mjs')
+
 async function parseTwitch(channel, userState, message) {
     const userId = userState['user-id'];
     const adminLevel = getAdminLevelTwitch(getUserTypeTwitch(userState));
@@ -340,6 +342,13 @@ async function parseTwitch(channel, userState, message) {
 
         // Parse
         switch (command) {
+            case "gpt":
+                if (adminLevel < getAdminLevelTwitch(PRIME)) { sendMessageTwitch(channel, NO_PERM); return; }
+                const prompt = concat(params, " ");
+                try {
+                    sendMessageTwitch(channel, await generateResponse([{ role: ROLES.USER, content: prompt }]).message.content)
+                } catch (e) { sendMessageTwitch("Command failed to work, try again later when the dev has attempted fixing this!") }
+                break;
             case "count":
                 if (adminLevel < getAdminLevelTwitch(MODERATOR)) { sendMessageTwitch(channel, MOD_NEEDED); return; }
                 if (params.length < 1) { sendMessageTwitch(channel, NO_ARGS); return; }
