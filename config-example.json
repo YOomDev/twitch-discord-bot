@@ -1,0 +1,12 @@
+{
+  "token": "token-goes-here",
+  "clientId": "application-id-goes-here",
+  "channel": "guild-id-goes-here",
+  "commandFolders": [
+    "../commands"
+  ],
+  "ignoreUsers": [
+    "user1",
+    "user2"
+  ]
+}
