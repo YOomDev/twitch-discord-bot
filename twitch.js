@@ -166,9 +166,129 @@ utils.getRoleLevel = getAdminLevel()
 
 async function parseTwitch(channel, userState, message) {
     if (message.startsWith(prefix)) {
+        const params = message.trim().substring(prefix.length, message.length).split(" ");
+        const commandName = params[0].toLowerCase();
+        params.splice(0, 1);
 
         const userId = userState['user-id'];
         const adminLevel = getAdminLevel(getUserType(userState));
+
+        let found = false;
+        for (let i = 0; i < commandList.length; i++) {
+            if (equals(commandName, commandList[i].name)) {
+                const command = commandList[i];
+
+                // end
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+
+        }
+    } else {
+        if (!contains(twitchChatters, userId)) {
+            if (message.toString().indexOf("***") > -1) { return; }
+            if (hasURL(message)) { return; }
+            twitchChatters.push(userId);
+            const lines = readFile(`${automatedMessagesFolder}welcomeMessages${userState['first-msg'] ? "First" : ""}.txt`);
+            sendMessageTwitch(channel, lines[randomInt(lines.length)].replaceAll("{USER}", userState['display-name']));
+        }
+        messagesSinceLastAutomatedMessage++;
+    }
+}
+
+
+////////////////////////
+// Automated messages // // TODO: REFACTOR!
+////////////////////////
+
+let messagesSinceLastAutomatedMessage = 0;
+let automatedMessageManager;
+let currentAutomatedMessage = 0;
+let runMessages = true;
+let hasTimePassedSinceLastAutomatedMessage = true;
+let automatedMessages = [];
+
+async function reloadTwitchTimedMessages() {
+    const config = readFile(`${automatedMessagesFolder}config.txt`);
+    for (let i = 0; i < config.length; i++) {
+        let line = config[i].split(" ");
+        switch (line[0]) {
+            case "message":
+            case "sequence":
+            case "list":
+                if (line.length > 1) {
+                    automatedMessages.push({ type: line[0], file: concat(line, " ", "", 1) });
+                    break;
+                }
+                logError(`Couldn\'t interpret automated message from config line ${i}: ${line}`);
+                break;
+            default:
+                logError(`Couldn\'t interpret automated message from config line ${i}: ${line}`);
+                break;
+        }
+    }
+    runMessages = false;
+    await stopAutomatedMessagesManager();
+    automatedMessageManager = automatedMessagesManager(); // Start new messages manager
+}
+
+async function stopAutomatedMessagesManager() {
+    runMessages = false;
+    if (automatedMessageManager) { await automatedMessageManager; }
+    automatedMessageManager = 0;
+    currentAutomatedMessage = 0;
+}
+
+function isChatActive() {
+    if (messagesSinceLastAutomatedMessage < messagesNeededBeforeAutomatedMessage) { return false; }
+    return hasTimePassedSinceLastAutomatedMessage;
+}
+
+async function awaitAutomatedMessageActive() { while (!isChatActive() && runMessages) { await sleep(1); } }
+
+async function automatedMessagesManager() {
+    runMessages = true;
+    while (runMessages) {
+        await awaitAutomatedMessageActive();
+        await playAutomatedMessage();
+    }
+}
+
+async function playAutomatedMessage() {
+    if (!runMessages) { return; }
+    if (isChatActive()) {
+        if (currentAutomatedMessage >= automatedMessages.length) { currentAutomatedMessage -= automatedMessages.length; }
+        const message = automatedMessages[currentAutomatedMessage];
+        let lines = readFile(`${automatedMessagesFolder}${message.file}.txt`);
+        switch (message.type) {
+            case "message":
+                sendMessageTwitch(twitchChannel, lines[randomInt(lines.length)]);
+                break;
+            case "sequence":
+                for (let i = 0; i < lines.length; i++) {
+                    await awaitAutomatedMessageActive();
+                    hasTimePassedSinceLastAutomatedMessage = false;
+                    messagesSinceLastAutomatedMessage = 0;
+                    sendMessageTwitch(twitchChannel, lines[i]);
+                    if (i < lines.length - 1) { sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; }); }
+                }
+                break;
+            case "list":
+                for (let i = 0; i < lines.length; i++) {
+                    sendMessageTwitch(twitchChannel, lines[i]);
+                    if (i < lines.length - 1) {await sleep(5); }
+                }
+                break;
+            default:
+                logError(`Message type (${message.type}) not implemented. `);
+                break;
+        }
+        currentAutomatedMessage++;
+        hasTimePassedSinceLastAutomatedMessage = false;
+        messagesSinceLastAutomatedMessage = 0;
+        sleep(minutesBetweenAutomatedMessages * 60).then(_ => { hasTimePassedSinceLastAutomatedMessage = true; });
     }
 }
 
