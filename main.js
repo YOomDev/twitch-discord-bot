@@ -352,7 +352,7 @@ async function parseTwitch(channel, userState, message) {
                 if (adminLevel < getAdminLevelTwitch(PRIME)) { sendMessageTwitch(channel, NO_PERM); return; }
                 const prompt = concat(params, " ");
                 try {
-                    sendMessageTwitch(channel, (await generateResponse([{ role: ROLES.USER, content: prompt }])).message.content)
+                    sendMessageTwitch(channel, (await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: prompt }])).message.content)
                 } catch (e) { logError(e); sendMessageTwitch(channel, "Command failed to work, try again later when the dev has attempted fixing this!") }
                 break;
             case "count":
