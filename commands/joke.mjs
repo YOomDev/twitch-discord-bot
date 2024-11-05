@@ -1,7 +1,7 @@
-const { SlashCommandBuilder } = require('discord.js');
-const https = require("https");
+import { SlashCommandBuilder } from 'discord.js';
+import 'https';
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('joke')
         .setDescription('Tells a joke.'),

@@ -1,8 +1,8 @@
-const { SlashCommandBuilder } = require('discord.js');
+import { SlashCommandBuilder } from 'discord.js';
 
 const debug = false;
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('debug')
         .setDescription('Gives some debug info to the developer when it is enabled.'),

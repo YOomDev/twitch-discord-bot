@@ -8,3 +8,4 @@ sounds/*.mp3
 automated/messages/*.txt
 data/commands/*
 !data/commands/FILES_GO_HERE
+config.json
