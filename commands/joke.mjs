@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import 'https';
 import { logError } from "../discord-bot-base/utils.mjs";
+import https from "https";
 
 export default {
     data: new SlashCommandBuilder()
