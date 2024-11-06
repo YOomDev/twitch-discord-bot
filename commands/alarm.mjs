@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
+import { sleep } from '../discord-bot-base/utils.mjs'
 
 export default {
     data: new SlashCommandBuilder()
@@ -11,8 +12,9 @@ export default {
             .setName("minutes")
             .setDescription("The amount of minutes the timer should be running for.")),
     async execute(interaction) {
-        // TODO
-        await interaction.reply("alarm1");
-        interaction.channel.send("alarm2");
+        let time = 0; // TODO: get input from message
+        let name = ""; // TODO: get input from message
+        sleep(time).then(_ => { interaction.channel.send(`Alarm '${name}' has ended!`); });
+        await interaction.reply(`Alarm '${name}' has been started for ${time} seconds.`);
     },
 };
