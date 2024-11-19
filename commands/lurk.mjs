@@ -4,8 +4,8 @@ import { logData } from "../discord-bot-base/utils.mjs";
 export default {
     data: new SlashCommandBuilder()
         .setName('lurk')
-        .setDescription('Gives some debug info to the developer when it is enabled.'),
+        .setDescription('Lets others know you are lurking.'),
     async execute(interaction) {
-        await interaction.reply(interaction.client.utils.buildEmbed("Error", "Lurking is not possible on discord?", [], interaction.client.utils.color_error));
+        await interaction.reply(interaction.client.utils.buildEmbed("Error", "We dont know how to implement this command for now?", [], interaction.client.utils.color_error));
     },
 };
