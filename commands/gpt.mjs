@@ -6,7 +6,8 @@ import {logData, logError, logInfo} from "../discord-bot-base/utils.mjs";
 export default {
     data: new SlashCommandBuilder()
         .setName('gpt')
-        .setDescription('not created yet'),
+        .setDescription('Command to prompt a GPT')
+        .addStringOption(option => { option.setRequired(true).setName('prompt').setDescription("The prompt you want to give to the gpt.") }),
     async execute(interaction) {
         interaction.reply("Generating a response...");
 
