@@ -17,10 +17,7 @@ export default {
         const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: interaction.options.getString('prompt') }]);
         if (!response.error) {
             // TODO: add info to the conversation list
-
-            await interaction.editReply(response.message.content);
-            return;
         }
-        await interaction.editReply(response.error);
+        await interaction.editReply(response.error ?  "An error occured while trying to process the prompt." : response.message.content);
     },
 };
