@@ -18,5 +18,6 @@ export default {
         let name = ""; // TODO: get input from message
         sleep(time).then(_ => { interaction.channel.send(`Alarm '${name}' has ended!`); });
         await interaction.reply(`Alarm '${name}' has been started for ${time} seconds.`);
+        sleep(time).then(_ => { interaction.channel.send(`Alarm '${name}' has ended!`); });
     },
 };
