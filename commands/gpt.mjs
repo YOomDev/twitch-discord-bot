@@ -11,7 +11,7 @@ export default {
             .setDescription("The prompt you want to give to the gpt.")
             .setRequired(true)),
     async execute(interaction) {
-        interaction.reply("Generating a response...");
+        await interaction.reply("Generating a response...");
 
         // Start generating response
         const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: interaction.options.getString('prompt') }]);
