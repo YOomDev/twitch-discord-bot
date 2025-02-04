@@ -10,8 +10,8 @@ export default {
             .setDescription('The name of the timer.')
             .setRequired(true))
         .addNumberOption(option => option
-            .setName("minutes")
-            .setDescription("The amount of minutes the timer should be running for.")
+            .setName('minutes')
+            .setDescription('The amount of minutes the timer should be running for.')
             .setRequired(true)),
     async execute(interaction) {
         let time = 0; // TODO: get input from message
