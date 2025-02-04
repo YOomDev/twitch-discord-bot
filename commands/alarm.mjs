@@ -14,10 +14,21 @@ export default {
             .setDescription('The amount of minutes the timer should be running for.')
             .setRequired(true)),
     async execute(interaction) {
-        let time = 0; // TODO: get input from message
-        let name = ""; // TODO: get input from message
-        sleep(time).then(_ => { interaction.channel.send(`Alarm '${name}' has ended!`); });
-        await interaction.reply(`Alarm '${name}' has been started for ${time} seconds.`);
-        sleep(time).then(_ => { interaction.channel.send(`Alarm '${name}' has ended!`); });
+        // Get the inputs
+        let time =  interaction.options.getNumber('minutes');
+        let name = interaction.options.getString('name').trim().replaceAll("  ", " ");
+
+        // Make sure the name is able to be displayed
+        if (name.length < 1) {
+            await interaction.reply("No displayable name has been supplied");
+            return;
+        }
+
+        // Clamp the time to make sure it is within normal limits
+        time = Math.min(Math.max(time, 0.016 /* 1 second */), 1440 /* 1 day */);
+
+        // Start the timer and make sure the user knows it's been started
+        await interaction.reply(`Alarm '${name}' has been started for ${time} minutes.`);
+        sleep(time * 60).then(_ => { interaction.channel.send(`Alarm '${name}' has ended!`); });
     },
 };
