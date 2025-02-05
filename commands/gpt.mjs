@@ -1,4 +1,4 @@
-import {SlashCommandBuilder, SlashCommandStringOption} from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 
 import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
 
