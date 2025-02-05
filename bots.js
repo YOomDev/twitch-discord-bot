@@ -4,6 +4,8 @@ import { logError } from "./discord-bot-base/utils.mjs";
 import { start as discord } from "./discord-bot-base/bot.mjs";
 import { start as twitch } from "./twitch-bot-base/bot.mjs";
 
+const global = {};
+
 function start() {
     startDiscord().catch(_ => {});
     startTwitch().catch(_ => {});
