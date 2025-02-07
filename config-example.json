@@ -1,10 +1,18 @@
 {
-  "token": "token-goes-here",
-  "clientName": "application-id-goes-here",
-  "channel": "guild-id-goes-here",
+  "global": "",
   "commandFolders": [
     "../commands"
   ],
+
+  "discord": "",
+  "token": "token-goes-here",
+  "clientId": "application-id-goes-here",
+  "guildId": "guild-id-goes-here",
+
+  "twitch": "",
+  "ttvtoken": "token-goes-here",
+  "clientName": "username-goes-here",
+  "channel": "channel-goes-here",
   "ignoreUsers": [
     "user1",
     "user2"
