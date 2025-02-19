@@ -14,10 +14,11 @@ export default {
         await interaction.reply("Generating a response...");
 
         // Start generating response
-        const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: interaction.options.getString('prompt') }]);
+        const promptMsg = interaction.options.getString('prompt');
+        const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: promptMsg }]);
         if (!response.error) {
             // TODO: add info to the conversation list
         }
-        await interaction.editReply(response.error ?  "An error occured while trying to process the prompt." : response.message.content);
+        await interaction.editReply(response.error ?  "An error occured while trying to process the prompt." : `**Prompt:** ${promptMsg}\n**Response:** ${response.message.content}`);
     },
-};
+}
