@@ -1,12 +1,12 @@
 import { logError } from "./discord-bot-base/utils.mjs";
 
 // Bot imports
-import { start as twitch } from "./twitch-bot-base/bot.mjs";
+import { start as discord } from "./discord-bot-base/bot.mjs";
 
 async function start() {
-    const ttv = await startTwitch().catch(_ => {});
+    const disc = await startDiscord().catch(_ => {});
 }
 
-async function startTwitch() { return twitch().catch(err => logError(err)); }
+async function startDiscord() { return discord().catch(err => logError(err)); }
 
 start();
