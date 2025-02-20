@@ -2,6 +2,13 @@ import { SlashCommandBuilder } from 'discord.js';
 import { logData } from "../discord-bot-base/utils.mjs";
 
 export default {
+    // Twitch
+    name: "",
+    async reply(client, channel, userState, params, message) {
+
+    },
+
+    // Discord
     data: new SlashCommandBuilder()
         .setName('lurk')
         .setDescription('Lets others know you are lurking.'),

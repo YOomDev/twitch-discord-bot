@@ -2,6 +2,13 @@ import { SlashCommandBuilder } from 'discord.js';
 import { sleep } from '../discord-bot-base/utils.mjs'
 
 export default {
+    // Twitch
+    name: "alarm",
+    async reply(client, channel, userState, params, message) {
+        // code...
+    },
+
+    // Discord
     data: new SlashCommandBuilder()
         .setName('alarm')
         .setDescription('Sets a alarm of a specified amount of minutes')

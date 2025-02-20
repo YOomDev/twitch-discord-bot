@@ -3,6 +3,13 @@ import { SlashCommandBuilder } from 'discord.js';
 import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
 
 export default {
+    // Twitch
+    name: "",
+    async reply(client, channel, userState, params, message) {
+
+    },
+
+    // Discord
     data: new SlashCommandBuilder()
         .setName('gpt')
         .setDescription('Command to prompt a GPT')

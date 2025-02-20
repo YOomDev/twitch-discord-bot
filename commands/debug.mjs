@@ -3,6 +3,13 @@ import { logData } from "../discord-bot-base/utils.mjs";
 const debug = false;
 
 export default {
+    // Twitch
+    name: "",
+    async reply(client, channel, userState, params, message) {
+
+    },
+
+    // Discord
     data: new SlashCommandBuilder()
         .setName('debug')
         .setDescription('Gives some debug info to the developer when it is enabled.'),

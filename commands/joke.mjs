@@ -3,6 +3,13 @@ import { logError } from "../discord-bot-base/utils.mjs";
 import https from "https";
 
 export default {
+    // Twitch
+    name: "",
+    async reply(client, channel, userState, params, message) {
+
+    },
+
+    // Discord
     data: new SlashCommandBuilder()
         .setName('joke')
         .setDescription('Tells a joke.'),
