@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { logError } from "../discord-bot-base/utils.mjs";
 import https from "https";
+import { createRequest, getSolvedRequest, resolveRequest } from "./resolver.js";
 
 export default {
     // Twitch
@@ -19,14 +20,14 @@ export default {
 };
 
 async function getDadJoke(utils) {
-    const id = utils.resolver.createRequest();
+    const id = createRequest();
     const options = {
         hostname: 'icanhazdadjoke.com',
         headers: { Accept: "text/plain" }
     }
     https.get(options, r => {
         r.setEncoding('utf8');
-        r.on('data', data => { utils.resolver.resolveRequest(id, data); });
-    }).on('error', err => { logError(err); utils.resolver.resolveRequest(id, "An error occurred trying to process this command.") });
-    return (await utils.resolver.getSolvedRequest(id)).toString();
+        r.on('data', data => { resolveRequest(id, data); });
+    }).on('error', err => { logError(err); resolveRequest(id, "An error occurred trying to process this command.") });
+    return (await getSolvedRequest(id)).toString();
 }
