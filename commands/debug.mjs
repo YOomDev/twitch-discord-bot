@@ -1,12 +1,22 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { logData } from "../discord-bot-base/utils.mjs";
+import { logInfo } from "../twitch-bot-base/utils.mjs";
 const debug = false;
 
 export default {
     // Twitch
     name: "debug",
     async reply(client, channel, userState, params, message) {
-
+        if (debug) {
+            logInfo(`Debug data for ${userState['display-name']} in ${channel}:`);
+            logInfo("Message:");
+            logData(message);
+            logInfo("Params:");
+            logData(params);
+            logInfo("Userstate:");
+            logData(userState);
+        }
+        client.utils.sendChannelMessage(channel, debug ? "Debug data has been given to devs." : "Debugging is currently turned off.");
     },
 
     // Discord
