@@ -5,7 +5,7 @@ export default {
     // Twitch
     name: "lurk",
     async reply(client, channel, userState, params, message) {
-
+        client.utils.sendChannelMessage(channel, `Thank you for lurking ${userState['display-name']}!`);
     },
 
     // Discord
