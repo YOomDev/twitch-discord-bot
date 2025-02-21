@@ -3,7 +3,7 @@ import { logData } from "../discord-bot-base/utils.mjs";
 
 export default {
     // Twitch
-    name: "",
+    name: "lurk",
     async reply(client, channel, userState, params, message) {
 
     },

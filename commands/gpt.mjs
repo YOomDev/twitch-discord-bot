@@ -4,7 +4,7 @@ import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
 
 export default {
     // Twitch
-    name: "",
+    name: "gpt",
     async reply(client, channel, userState, params, message) {
 
     },

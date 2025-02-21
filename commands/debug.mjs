@@ -4,7 +4,7 @@ const debug = false;
 
 export default {
     // Twitch
-    name: "",
+    name: "debug",
     async reply(client, channel, userState, params, message) {
 
     },

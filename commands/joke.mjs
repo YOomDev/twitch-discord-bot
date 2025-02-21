@@ -4,7 +4,7 @@ import https from "https";
 
 export default {
     // Twitch
-    name: "",
+    name: "joke",
     async reply(client, channel, userState, params, message) {
 
     },
