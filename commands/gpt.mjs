@@ -1,12 +1,17 @@
 import { SlashCommandBuilder } from 'discord.js';
-
 import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
+import { concat } from "../twitch-bot-base/utils.mjs";
 
 export default {
     // Twitch
     name: "gpt",
     async reply(client, channel, userState, params, message) {
-
+        const promptMsg = concat(params);
+        const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: promptMsg }]);
+        if (!response.error) {
+            // TODO: add info to the conversation list
+        }
+        client.utils.sendChannelMessage(response.error ?  "An error occured while trying to process the prompt." : `Prompt: ${promptMsg} | Response: ${response.message.content}`);
     },
 
     // Discord
