@@ -1,13 +1,13 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { logError } from "../discord-bot-base/utils.mjs";
 import https from "https";
-import { createRequest, getSolvedRequest, resolveRequest } from "./resolver.js";
+import { createRequest, getSolvedRequest, resolveRequest } from "./resolver.mjs";
 
 export default {
     // Twitch
     name: "joke",
     async reply(client, channel, userState, params, message) {
-
+        client.utils.sendChannelMessage(channel, "");
     },
 
     // Discord
