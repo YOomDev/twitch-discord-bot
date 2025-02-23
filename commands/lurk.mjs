@@ -1,5 +1,4 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { logData } from "../discord-bot-base/utils.mjs";
 
 export default {
     // Twitch
