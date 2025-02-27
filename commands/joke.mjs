@@ -1,5 +1,4 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { logError } from "../discord-bot-base/utils.mjs";
 import https from "https";
 import { createRequest, getSolvedRequest, resolveRequest } from "./utils/resolver.mjs";
 
@@ -28,6 +27,6 @@ async function getDadJoke(utils) {
     https.get(options, r => {
         r.setEncoding('utf8');
         r.on('data', data => { resolveRequest(id, data); });
-    }).on('error', err => { logError(err); resolveRequest(id, "An error occurred trying to process this command.") });
+    }).on('error', err => { utils.logErr(err); resolveRequest(id, "An error occurred trying to process this command.") });
     return (await getSolvedRequest(id)).toString();
 }
