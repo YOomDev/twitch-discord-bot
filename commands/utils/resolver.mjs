@@ -36,3 +36,5 @@ export function resolveRequest(id, data) {
         }
     }
 }
+
+export default {}
