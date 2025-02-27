@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { sleep } from '../discord-bot-base/utils.mjs'
+import { sleep } from './utils/utils.mjs'
 
 export default {
     // Twitch
