@@ -6,6 +6,7 @@ export default {
     // Twitch
     name: "gpt",
     async reply(client, channel, userState, params, message) {
+        if (!client.utils.isAdminLevel(userState, client.roles.PRIME)) { client.utils.sendChannelMessage("You do not have the permissions to use this command!"); return; }
         const promptMsg = concat(params);
         const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: promptMsg }]);
         if (!response.error) {
