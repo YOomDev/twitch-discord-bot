@@ -2,6 +2,8 @@
 // Resolver //
 //////////////
 
+import { sleep } from "./utils.mjs";
+
 let lastRequestId = -1;
 const requests = [];
 
