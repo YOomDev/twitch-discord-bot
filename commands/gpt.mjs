@@ -11,7 +11,7 @@ export default {
         if (!response.error) {
             // TODO: add info to the conversation list
         }
-        client.utils.sendChannelMessage(response.error ?  "An error occured while trying to process the prompt." : `Prompt: ${promptMsg} | Response: ${response.message.content}`);
+        client.utils.sendChannelMessage(channel, response.error ?  "An error occured while trying to process the prompt." : `Prompt: ${promptMsg} | Response: ${response.message.content}`);
     },
 
     // Discord
