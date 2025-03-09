@@ -5,7 +5,8 @@ export default {
     // Twitch
     name: "alarm",
     async reply(client, channel, userState, params, message) {
-        if (params.length < 2) { client.utils.sendChannelMessage(channel, NO_ARGS); return; }
+        if (!client.utils.isAdminLevel(userState, client.roles.BROADCASTER)) { client.utils.sendChannelMessage("You do not have the permissions to use this command!"); return; }
+        if (params.length < 2) { client.utils.sendChannelMessage(channel, "Not enough arguments to run this command!"); return; }
         const name = params[0];
         const number = parseInt(params[1]);
         if (isNaN(number)) { client.utils.sendChannelMessage(channel, "Second argument is not a number!"); return; }
