@@ -6,7 +6,7 @@ export default {
     // Twitch
     name: "joke",
     async reply(client, channel, userState, params, message) {
-        client.utils.sendChannelMessage(channel, "");
+        client.utils.sendChannelMessage(channel, await getDadJoke(client.utils));
     },
 
     // Discord
