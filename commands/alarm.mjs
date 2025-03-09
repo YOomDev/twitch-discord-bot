@@ -17,7 +17,7 @@ export default {
         if (minutes > 0) { time += `${time.length > 0 ? " and " : ""}${minutes} minute${minutes > 1 ? "s" : ""}`.toString(); }
         if (seconds > 0) { time += `${time.length > 0 ? " and " : ""}${seconds} second${seconds > 1 ? "s" : ""}`.toString(); }
         client.utils.sendChannelMessage(channel, `Timer \'${name}\' started for ${time}.`);
-        sleep(60 * total).then(_ => { client.utils.sendChannelMessage(channel, `Timer \'${name}\' ended.`); playAudio(`${name}.mp3`).catch(err => logError(err)) });
+        sleep(60 * total).then(_ => { client.utils.sendChannelMessage(channel, `Timer \'${name}\' ended.`); /*playAudio(`${name}.mp3`).catch(err => logError(err))*/ });
     },
 
     // Discord
