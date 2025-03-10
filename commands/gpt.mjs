@@ -10,7 +10,6 @@ export default {
         if (!client.utils.isAdminLevel(userState, client.roles.PRIME)) { client.utils.sendChannelMessage(channel, "You do not have the permissions to use this command!"); return; }
         const promptMsg = concat(params, " ");
         const response = await generateResponse([{ role: ROLES.SYSTEM, content: "Please answer the next question as short and concise as possible:" },{ role: ROLES.USER, content: promptMsg }]);
-        logData(response);
         if (!response.error) {
             // TODO: add info to the conversation list
         }
