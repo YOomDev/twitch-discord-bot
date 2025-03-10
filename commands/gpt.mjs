@@ -1,7 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
 import { concat } from "./utils/utils.mjs";
-import {logData} from "../twitch-bot-base/utils.mjs";
 
 export default {
     // Twitch
