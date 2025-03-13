@@ -14,7 +14,7 @@ export default {
         .setName('joke')
         .setDescription('Tells a joke.'),
     async execute(interaction) {
-        await interaction.reply(interaction.client.utils.buildEmbed("Joke", await getDadJoke(interaction.client.utils)));
+        await interaction.reply({ embeds: [interaction.client.utils.buildEmbed("Joke", await getDadJoke(interaction.client.utils))]});
     },
 };
 

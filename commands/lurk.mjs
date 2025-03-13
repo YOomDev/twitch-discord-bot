@@ -12,6 +12,6 @@ export default {
         .setName('lurk')
         .setDescription('Lets others know you are lurking.'),
     async execute(interaction) {
-        await interaction.reply(interaction.client.utils.buildEmbed("Error", "We dont know how to implement this command for now?", [], interaction.client.utils.color_error));
+        await interaction.reply({ embeds: [interaction.client.utils.buildEmbed("Error", "We dont know how to implement this command for now?", [], interaction.client.utils.color_error)]});
     },
 };

@@ -12,7 +12,7 @@ export default {
         .setName('smurt')
         .setDescription('to be implemented'),
     async execute(interaction) {
-        await interaction.reply(interaction.client.utils.buildEmbed("Smurt", getSmurtMessage()));
+        await interaction.reply({ embeds: [interaction.client.utils.buildEmbed("Smurt", getSmurtMessage())]});
     },
 };
 
