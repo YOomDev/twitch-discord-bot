@@ -24,9 +24,11 @@ async function getDadJoke(utils) {
         hostname: 'icanhazdadjoke.com',
         headers: { Accept: "text/plain" }
     }
+    let responsetext = "";
     https.get(options, r => {
         r.setEncoding('utf8');
-        r.on('data', data => { resolveRequest(id, data); });
+        r.on('data', data => { responsetext = responsetext + data; });
+        r.on('end', _ => { resolveRequest(id, responsetext); });
     }).on('error', err => { utils.logErr(err); resolveRequest(id, "An error occurred trying to process this command.") });
     return (await getSolvedRequest(id)).toString();
 }
