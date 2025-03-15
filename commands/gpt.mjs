@@ -12,7 +12,7 @@ export default {
         if (!response.error) {
             // TODO: add info to the conversation list
         }
-        client.utils.sendChannelMessage(channel, response.error ?  "An error occured while trying to process the prompt." : `${response.message.content}`);
+        client.utils.sendChannelMessage(channel, response.error ?  "An error occurred while trying to process the prompt." : `${response.message.content}`);
     },
 
     // Discord
@@ -32,6 +32,6 @@ export default {
         if (!response.error) {
             // TODO: add info to the conversation list
         }
-        await interaction.editReply(response.error ?  "An error occured while trying to process the prompt." : `**Prompt:** ${promptMsg}\n**Response:** ${response.message.content}`);
+        await interaction.editReply(response.error ?  "An error occurred while trying to process the prompt." : `**Prompt:** ${promptMsg}\n**Response:** ${response.message.content}`);
     },
 }
