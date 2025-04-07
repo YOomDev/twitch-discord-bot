@@ -12,7 +12,7 @@ export default {
                 break;
             case 'stream':
             default:
-                client.utils.sendChannelMessage(channel, (client.utils.streamStartTime === client.utils.startTime && client.utils.streamStartTime > 0) ? `Stream has been live for ${getTimeDifference(client.utils.streamStartTime, new Date().getTime(), true)}!` : 'Stream is currently not live.');
+                client.utils.sendChannelMessage(channel, (client.utils.streamStartTime !== client.utils.startTime && client.utils.streamStartTime > 0) ? `Stream has been live for ${getTimeDifference(client.utils.streamStartTime, new Date().getTime(), true)}!` : 'Stream is currently not live.');
                 break;
         }
     },
