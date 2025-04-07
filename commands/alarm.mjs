@@ -25,7 +25,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('alarm')
         .setDescription('Sets a alarm of a specified amount of minutes')
-        .addStringOption( option => option
+        .addStringOption(option => option
             .setName('name')
             .setDescription('The name of the timer.')
             .setRequired(true))
