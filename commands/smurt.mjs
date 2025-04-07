@@ -27,5 +27,5 @@ const messages = [
 ];
 
 function getSmurtMessage() {
-    return messages[randomInt(0,  messages.length) % messages.length]; // Modulo opeartor just in case the randomInt function is inclusive, TODO: test if it is inclusive and remove modulo if possible
+    return messages[randomInt(0,  messages.length) % messages.length]; // Modulo operator just in case the randomInt function is inclusive, TODO: test if it is inclusive and remove modulo if possible
 }
