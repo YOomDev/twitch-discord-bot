@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export default {
     // Twitch
-    name: "smurt",
+    name: 'smurt',
     async reply(client, channel, userState, params, message) {
         client.utils.sendChannelMessage(channel, getSmurtMessage());
     },
@@ -12,7 +12,7 @@ export default {
         .setName('smurt')
         .setDescription('to be implemented'),
     async execute(interaction) {
-        await interaction.reply({ embeds: [interaction.client.utils.buildEmbed("Smurt", getSmurtMessage())]});
+        await interaction.reply({ embeds: [interaction.client.utils.buildEmbed('Smurt', getSmurtMessage())]});
     },
 };
 
