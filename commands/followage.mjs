@@ -1,6 +1,7 @@
 import { getTimeDifference } from './utils/utils.mjs';
 
 export default {
+    aliases: ['followtime'],
     // Twitch
     name: 'followage',
     async reply(client, channel, userState, params, message) {

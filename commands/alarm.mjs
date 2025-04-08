@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { sleep } from './utils/utils.mjs'
 
 export default {
+    aliases: ['timer'],
     // Twitch
     name: 'alarm',
     async reply(client, channel, userState, params, message) {
