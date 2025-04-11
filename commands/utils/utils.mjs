@@ -1,3 +1,5 @@
+import fs from "node:fs";
+
 export async function sleep(seconds) { return new Promise(resolve => setTimeout(resolve, Math.max(seconds, 0) * 1000)); }
 
 export function concat(list, separator = "", prefix = "", start = 0, count = list.length) {
@@ -17,5 +19,8 @@ export function getTimeDifference(milliFrom, milliTo = new Date().getTime(), sho
     const minutes = totalMinutes - (totalHours * 60);
     return `${years > 0 ? `${years} years and ` : ``}${days > 0 ? `${days} days and ` : ``}${hours} hours${(showMinutes && minutes > 0) ? ` and ${minutes} minutes` : ``}`;
 }
+
+export function loadJSON(path) { return JSON.parse(fs.readFileSync(new URL(path, import.meta.url))); }
+export function saveJSON(path, data) { fs.writeFileSync(new URL(path, import.meta.url), JSON.stringify(data, null, 2)); }
 
 export default {}
