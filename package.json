@@ -2,7 +2,7 @@
   "name": "twitch-discord-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "bots.js",
   "scripts": {
     "update": "cd ./discord-bot-base && npm run update && cd .."
   },
