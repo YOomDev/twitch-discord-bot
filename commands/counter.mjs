@@ -19,12 +19,14 @@ export default {
                 else { client.utils.sendChannelMessage(channel, `Counter ${counter} is currently ${json[counter]}`); }
                 break;
             case 'set':
+                if (!client.utils.isAdminLevel(userState, client.roles.MODERATOR)) { client.utils.sendChannelMessage(channel, client.replies.MOD_NEEDED); return; }
                 if (Number.isNaN(maybe_number)) { client.utils.sendChannelMessage(channel, client.replies.INVALID_NUMBER); return; }
                 json[counter] = maybe_number;
                 saveJSON(counter_path, json);
                 client.utils.sendChannelMessage(channel, `Counter ${counter} has been set to ${maybe_number}`);
                 break;
             case 'add':
+                if (!client.utils.isAdminLevel(userState, client.roles.MODERATOR)) { client.utils.sendChannelMessage(channel, client.replies.MOD_NEEDED); return; }
                 if (Number.isNaN(maybe_number)) { client.utils.sendChannelMessage(channel, client.replies.INVALID_NUMBER); return; }
                 if (!exists) { json[counter] = maybe_number; }
                 else { json[counter] += maybe_number; }
