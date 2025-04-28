@@ -9,7 +9,7 @@ export default {
             if (client.utils.isAdminLevel(userState, client.roles.MODERATOR)) {
                 if (params[0].length > 0) {
                     const follower = client.utils.isFollower(params[0], 'name');
-                    client.utils.sendChannelMessage(channel, follower < 0 ? `${client.utils.getFollowerName(follower)} has not followed long enough to be checked.` : `${client.utils.getFollowerName(follower)} has followed for ${getTimeDifference(client.utils.getFollowerTime(follower))}. #${client.utils.getFollowerCount()-follower}`);
+                    client.utils.sendChannelMessage(channel, follower < 0 ? `${params[0]} has not followed long enough to be checked.` : `${client.utils.getFollowerName(follower)} has followed for ${getTimeDifference(client.utils.getFollowerTime(follower))}. #${client.utils.getFollowerCount()-follower}`);
                     return;
                 }
             }
