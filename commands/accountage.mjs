@@ -8,6 +8,6 @@ export default {
         const username = (params.length < 1 || params[0].length < 1) ? userState['username'] : params[0];
         const creationTime = await client.utils.getAccountAge(username);
         if (creationTime < 0) { client.utils.sendChannelMessage(channel, 'Username does not exist or there was an error getting the required information.'); return; }
-        client.utils.sendChannelMessage(channel,`${(params.length < 1 || params[0].length < 1) ? `${username} has had their account for` : `You have had your account for`}  ${getTimeDifference(creationTime)}`);
+        client.utils.sendChannelMessage(channel,`${(params.length < 1 || params[0].length < 1) ? `You have had your account for` : `${username} has had their account for`}  ${getTimeDifference(creationTime)}`);
     },
 };
