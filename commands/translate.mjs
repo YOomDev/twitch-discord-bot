@@ -5,7 +5,8 @@ import { concat } from './utils/utils.mjs';
 const promptSystem =  'Translate the following stream chat message as literally as possible into English. ' +
     'Assume the original language is unknown and likely *not* English. ' +
     'Focus on a direct, word-for-word translation. ' +
-    'Be aware that the resulting English may be grammatically awkward or unusual.';
+    'Be aware that the resulting English may be grammatically awkward or unusual.' +
+    'Do not add comments in the result.';
 
 export default {
     // Twitch
