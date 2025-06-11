@@ -2,13 +2,20 @@ import { SlashCommandBuilder } from 'discord.js';
 import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
 import { concat } from './utils/utils.mjs';
 
+const promptSystem =  'Translate the following stream chat message as literally as possible into English. ' +
+    'Assume the original language is unknown and likely *not* English. ' +
+    'Focus on a direct, word-for-word translation. ' +
+    'Be aware that the resulting English may be grammatically awkward or unusual.';
+
 export default {
     // Twitch
     name: 'translate',
     async reply(client, channel, userState, params, message) {
         if (!client.utils.isAdminLevel(userState, client.roles.BROADCASTER)) { client.utils.sendChannelMessage(channel, 'You do not have the permissions to use this command!'); return; }
-        const promptMsg = concat(params, " ");
-        const response = await generateResponse([{ role: ROLES.SYSTEM, content: 'Please translate the following message to english while replying as short and concise as possible:' },{ role: ROLES.USER, content: promptMsg }]);
+        const promptMsg = concat(params, ' ');
+        const response = await generateResponse([
+            { role: ROLES.SYSTEM, content: promptSystem },
+            { role: ROLES.USER, content: promptMsg }]);
         if (!response.error) {
             // TODO: add info to the conversation list
         }
