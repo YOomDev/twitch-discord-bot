@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { generateResponse, ROLES } from '../discord-bot-base/gpt.mjs';
 import { concat } from './utils/utils.mjs';
 
-const promptSystem =  'owing stream chat message into English. ' +
+const promptSystem =  'Translate the following stream chat message into English. ' +
     'Assume the original language is unknown and that it is unlikely to be English. ' +
     'Prioritize a literal, direct translation, aiming for grammatical correctness even if it results in an unusual or structurally awkward English sentence. ' +
     'Present only the translated text, without any explanatory comments or introductory phrases.';
