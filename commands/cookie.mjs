@@ -3,6 +3,7 @@ import { SlashCommandBuilder } from 'discord.js';
 export default {
     // Twitch
     name: 'cookie',
+    aliases: ['cookies'],
     async reply(client, channel, userState, params, message) {
         client.utils.sendChannelMessage(channel, `You have ${client.utils.getCookies(userState['display-name'])} cookie(s). ${!client.utils.isAdminLevel(userState, client.utils.PRIME) ? '(You need to have a subscription to earn more cookies)' : ''}`);
     },
