@@ -4,8 +4,7 @@ export default {
     // Twitch
     name: 'cookie',
     async reply(client, channel, userState, params, message) {
-        client.utils.sendChannelMessage(channel, `Cookies!?!?? (To be continued)`);
-        // TODO
+        client.utils.sendChannelMessage(channel, `You have ${client.utils.getCookies()} cookie(s). ${!client.utils.isAdminLevel(userState, client.utils.PRIME) ? '(You need to have a subscription to earn more cookies)' : ''}`);
     },
 
     // Discord
